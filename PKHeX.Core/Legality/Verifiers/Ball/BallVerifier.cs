@@ -140,9 +140,10 @@ public sealed class BallVerifier : Verifier
             return GetInvalid(LBallUnavailable);
 
         // Sprigatito: Meowscarada the Unrivaled
-        // Fuecoco, Quaxly: Pokémon GO
+        // Fuecoco: Skeledirge the Unrivaled
+        // Quaxly: Pokémon GO
         var species = enc.Species;
-        if (species is >= (int)Species.Fuecoco and <= (int)Species.Quaquaval)
+        if (species is >= (int)Species.Quaxly and <= (int)Species.Quaquaval)
             return VerifyBallEquals(ball, BallUseLegality.WildPokeballs8g_WithoutRaid);
 
         var result = BallContextHOME.Instance.CanBreedWithBall(enc.Species, enc.Form, ball, pk);
