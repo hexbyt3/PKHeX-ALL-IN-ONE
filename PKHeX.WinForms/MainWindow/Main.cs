@@ -9,10 +9,8 @@ using System.Media;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
 using PKHeX.Core;
 using PKHeX.Core.MetLocationGenerator;
-using PKHeX.Core.LegalBallGenerator;
 using PKHeX.Core.Moves;
 using PKHeX.Drawing;
 using PKHeX.Drawing.Misc;
@@ -1597,34 +1595,6 @@ public partial class Main : Form
             else
             {
                 MessageBox.Show($"Failed to generate JSON file. Please check the error log at:\n{errorLogPath}", "JSON Generation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
-
-    private void sVBallGeneratorToolStripMenuItem_Click(object sender, EventArgs e)
-    {
-        try
-        {
-            string executablePath = Application.ExecutablePath;
-            string executableDirectory = Path.GetDirectoryName(executablePath);
-            string outputPath = Path.Combine(executableDirectory, "sv_ball_legality.csv");
-            string errorLogPath = Path.Combine(executableDirectory, "sv_ball_legality_error_log.txt");
-
-            BallLegalityGeneratorSV.GenerateBallLegalityCSV(outputPath, errorLogPath);
-
-            if (File.Exists(outputPath))
-            {
-                MessageBox.Show($"Scarlet/Violet ball legality JSON generated successfully at:\n{outputPath}",
-                    "JSON Generated", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            else
-            {
-                MessageBox.Show($"Failed to generate JSON file. Please check the error log at:\n{errorLogPath}",
-                    "JSON Generation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         catch (Exception ex)

@@ -576,44 +576,6 @@ namespace PKHeX.WinForms
             splitContainer2.SplitterWidth = 1;
             splitContainer2.TabIndex = 106;
             // 
-            // generateLegalBallsToolStripMenuItem
-            // 
-            generateLegalBallsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { sVBallGeneratorToolStripMenuItem, sWSHBallGeneratorToolStripMenuItem, bDSPBallGeneratorToolStripMenuItem, pLABallGeneratorToolStripMenuItem, lGPEBallGeneratorToolStripMenuItem });
-            generateLegalBallsToolStripMenuItem.Name = "generateLegalBallsToolStripMenuItem";
-            generateLegalBallsToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
-            generateLegalBallsToolStripMenuItem.Text = "Generate Legal Balls";
-            // 
-            // sVBallGeneratorToolStripMenuItem
-            // 
-            sVBallGeneratorToolStripMenuItem.Name = "sVBallGeneratorToolStripMenuItem";
-            sVBallGeneratorToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
-            sVBallGeneratorToolStripMenuItem.Text = "SV Ball Generator";
-            sVBallGeneratorToolStripMenuItem.Click += sVBallGeneratorToolStripMenuItem_Click;
-            // 
-            // sWSHBallGeneratorToolStripMenuItem
-            // 
-            sWSHBallGeneratorToolStripMenuItem.Name = "sWSHBallGeneratorToolStripMenuItem";
-            sWSHBallGeneratorToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
-            sWSHBallGeneratorToolStripMenuItem.Text = "SWSH Ball Generator";
-            // 
-            // bDSPBallGeneratorToolStripMenuItem
-            // 
-            bDSPBallGeneratorToolStripMenuItem.Name = "bDSPBallGeneratorToolStripMenuItem";
-            bDSPBallGeneratorToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
-            bDSPBallGeneratorToolStripMenuItem.Text = "BDSP Ball Generator";
-            // 
-            // pLABallGeneratorToolStripMenuItem
-            // 
-            pLABallGeneratorToolStripMenuItem.Name = "pLABallGeneratorToolStripMenuItem";
-            pLABallGeneratorToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
-            pLABallGeneratorToolStripMenuItem.Text = "PLA Ball Generator";
-            // 
-            // lGPEBallGeneratorToolStripMenuItem
-            // 
-            lGPEBallGeneratorToolStripMenuItem.Name = "lGPEBallGeneratorToolStripMenuItem";
-            lGPEBallGeneratorToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
-            lGPEBallGeneratorToolStripMenuItem.Text = "LGPE Ball Generator";
-            // 
             // Main
             // 
             AllowDrop = true;
