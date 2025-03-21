@@ -1,0 +1,60 @@
+
+name: .NET Core Desktop
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: List All Files and Directories
+      run: Get-ChildItem -Recurse | Select-Object FullName
+
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Check Installed .NET Workloads
+      run: dotnet workload list
+
+    - name: Update .NET Workloads (If Needed)
+      run: dotnet workload update
+
+    - name: Clear .NET NuGet Cache (Prevents Conflicts)
+      run: dotnet nuget locals all --clear
+
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Execute Unit Tests
+      run: dotnet test Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj
+
+    - name: Restore the Application
+      run: msbuild PKHeX.sln /t:Restore /p:Configuration=${{ matrix.configuration }}
+
+    - name: Build Project (msbuild)
+      run: msbuild PKHeX.sln /p:Configuration=${{ matrix.configuration }} /p:NoWarn="CS8618;CS8625;CS8604" /p:TreatWarningsAsErrors=false
+
+    - name: Build Project (dotnet build)
+      run: dotnet build PKHeX.sln --configuration ${{ matrix.configuration }} -p:NoWarn="CS8618;CS8625;CS8604" -p:TreatWarningsAsErrors=false
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Build Artifacts
+        path: ${{ github.workspace }}/bin/${{ matrix.configuration }}
