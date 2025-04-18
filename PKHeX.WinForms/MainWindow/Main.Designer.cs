@@ -283,12 +283,14 @@ namespace PKHeX.WinForms
             // metLocationsToolStripMenuItem
             // 
             metLocationsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { sVToolStripMenuItem, sWSHToolStripMenuItem, lAToolStripMenuItem, bDSPToolStripMenuItem, lGPEToolStripMenuItem });
+            metLocationsToolStripMenuItem.Image = Properties.Resources.heart;
             metLocationsToolStripMenuItem.Name = "metLocationsToolStripMenuItem";
             metLocationsToolStripMenuItem.Size = new System.Drawing.Size(182, 22);
             metLocationsToolStripMenuItem.Text = "Met Locations";
             // 
             // sVToolStripMenuItem
             // 
+            sVToolStripMenuItem.Image = Properties.Resources.gen_sv;
             sVToolStripMenuItem.Name = "sVToolStripMenuItem";
             sVToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             sVToolStripMenuItem.Text = "SV";
@@ -296,6 +298,7 @@ namespace PKHeX.WinForms
             // 
             // sWSHToolStripMenuItem
             // 
+            sWSHToolStripMenuItem.Image = Properties.Resources.gen_8;
             sWSHToolStripMenuItem.Name = "sWSHToolStripMenuItem";
             sWSHToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             sWSHToolStripMenuItem.Text = "SWSH";
@@ -303,6 +306,7 @@ namespace PKHeX.WinForms
             // 
             // lAToolStripMenuItem
             // 
+            lAToolStripMenuItem.Image = Properties.Resources.gen_la;
             lAToolStripMenuItem.Name = "lAToolStripMenuItem";
             lAToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             lAToolStripMenuItem.Text = "LA";
@@ -310,6 +314,7 @@ namespace PKHeX.WinForms
             // 
             // bDSPToolStripMenuItem
             // 
+            bDSPToolStripMenuItem.Image = Properties.Resources.gen_bs;
             bDSPToolStripMenuItem.Name = "bDSPToolStripMenuItem";
             bDSPToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             bDSPToolStripMenuItem.Text = "BDSP";
@@ -317,6 +322,7 @@ namespace PKHeX.WinForms
             // 
             // lGPEToolStripMenuItem
             // 
+            lGPEToolStripMenuItem.Image = Properties.Resources.gen_gg;
             lGPEToolStripMenuItem.Name = "lGPEToolStripMenuItem";
             lGPEToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             lGPEToolStripMenuItem.Text = "LGPE";
