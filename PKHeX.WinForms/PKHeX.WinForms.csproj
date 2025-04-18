@@ -34,11 +34,17 @@
 
   <ItemGroup>
     <None Remove="MainWindow\Plugins\AutoModPlugins.dll" />
+    <None Remove="MainWindow\Plugins\PluginPile.dll" />
+    <None Remove="MainWindow\Plugins\PokeFilename.API.dll" />
+    <None Remove="MainWindow\Plugins\PokeFilename.GUI.dll" />
     <None Remove="MainWindow\Plugins\TeraFinder.Plugins.dll" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="MainWindow\Plugins\AutoModPlugins.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\PluginPile.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\PokeFilename.API.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\PokeFilename.GUI.dll" />
     <EmbeddedResource Include="MainWindow\Plugins\TeraFinder.Plugins.dll" />
   </ItemGroup>
 
