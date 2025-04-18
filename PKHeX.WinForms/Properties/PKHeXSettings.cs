@@ -139,7 +139,7 @@ public sealed class StartupSettings : IStartupSettings
     public bool ShowChangelogOnUpdate { get; set; } = true;
 
     [LocalizedDescription("Loads plugins from the plugins folder, assuming the folder exists. Try LoadFile to mitigate intermittent load failures.")]
-    public PluginLoadSetting PluginLoadMethod { get; set; } = PluginLoadSetting.LoadFrom;
+    public PluginLoadSetting PluginLoadMethod { get; set; } = PluginLoadSetting.LoadFromMerged;
 
     [Browsable(false)]
     public List<string> RecentlyLoaded { get; set; } = new(DefaultMaxRecent);

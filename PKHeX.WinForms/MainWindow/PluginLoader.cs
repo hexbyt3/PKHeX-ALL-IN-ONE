@@ -40,20 +40,31 @@ public static class PluginLoader
     private static IEnumerable<Assembly> GetAssemblies(IEnumerable<string> dllFileNames, PluginLoadSetting loadSetting)
     {
         var loadMethod = GetPluginLoadMethod(loadSetting);
+        var result = new List<Assembly>();
+
         foreach (var file in dllFileNames)
         {
-            Assembly x;
-            try { x = loadMethod(file); }
+            try
+            {
+                var assembly = loadMethod(file);
+                result.Add(assembly);
+            }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Unable to load plugin from file: {file}");
                 Debug.WriteLine(ex.Message);
-                continue;
             }
-            yield return x;
         }
+
         if (loadSetting.IsMerged())
-            yield return Assembly.GetExecutingAssembly(); // load merged too
+        {
+            result.Add(Assembly.GetExecutingAssembly()); // load merged too
+
+            // Load embedded DLLs directly from resources
+            result.AddRange(LoadEmbeddedPlugins());
+        }
+
+        return result;
     }
 
     private static Func<string, Assembly> GetPluginLoadMethod(PluginLoadSetting pls) => pls switch
@@ -99,6 +110,39 @@ public static class PluginLoader
             }
             return [];
         }
+    }
+
+    private static List<Assembly> LoadEmbeddedPlugins()
+    {
+        var result = new List<Assembly>();
+        var assembly = Assembly.GetExecutingAssembly();
+        var resources = assembly.GetManifestResourceNames();
+
+        foreach (var resource in resources)
+        {
+            if (!resource.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try
+            {
+                using var stream = assembly.GetManifestResourceStream(resource);
+                if (stream == null)
+                    continue;
+
+                var bytes = new byte[stream.Length];
+                stream.Read(bytes, 0, bytes.Length);
+
+                var loadedAssembly = Assembly.Load(bytes);
+                result.Add(loadedAssembly);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Unable to load embedded plugin: {resource}");
+                Debug.WriteLine(ex.Message);
+            }
+        }
+
+        return result;
     }
 
     private static bool IsTypePlugin(Type type, Type plugin)

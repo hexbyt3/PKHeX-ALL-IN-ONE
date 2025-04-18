@@ -18,6 +18,10 @@
     <RootNamespace>PKHeX.WinForms</RootNamespace>
   </PropertyGroup>
 
+	<PropertyGroup>
+		<DefineConstants>MERGED</DefineConstants>
+	</PropertyGroup>
+	
   <PropertyGroup>
     <DebugType>portable</DebugType>
     <EmbedAllSources>true</EmbedAllSources>
@@ -27,6 +31,16 @@
     <PublishTrimmed>false</PublishTrimmed>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="MainWindow\Plugins\AutoModPlugins.dll" />
+    <None Remove="MainWindow\Plugins\TeraFinder.Plugins.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="MainWindow\Plugins\AutoModPlugins.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\TeraFinder.Plugins.dll" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PKHeX.Core\PKHeX.Core.csproj" />
