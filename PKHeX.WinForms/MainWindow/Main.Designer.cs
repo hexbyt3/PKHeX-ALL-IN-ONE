@@ -58,6 +58,7 @@ namespace PKHeX.WinForms
             lAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             bDSPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             lGPEToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            dexDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Folder = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Options = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Language = new System.Windows.Forms.ToolStripMenuItem();
@@ -74,6 +75,7 @@ namespace PKHeX.WinForms
             PKME_Tabs = new PKHeX.WinForms.Controls.PKMEditor();
             C_SAV = new PKHeX.WinForms.Controls.SAVEditor();
             splitContainer2 = new System.Windows.Forms.SplitContainer();
+            generateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -200,7 +202,7 @@ namespace PKHeX.WinForms
             // 
             // Menu_Data
             // 
-            Menu_Data.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { Menu_LoadBoxes, Menu_DumpBoxes, Menu_DumpBox, Menu_Report, Menu_Database, Menu_MGDatabase, Menu_EncDatabase, Menu_BatchEditor, metLocationsToolStripMenuItem });
+            Menu_Data.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { Menu_LoadBoxes, Menu_DumpBoxes, Menu_DumpBox, Menu_Report, Menu_Database, Menu_MGDatabase, Menu_EncDatabase, Menu_BatchEditor, metLocationsToolStripMenuItem, dexDataToolStripMenuItem });
             Menu_Data.Image = Properties.Resources.data;
             Menu_Data.Name = "Menu_Data";
             Menu_Data.Size = new System.Drawing.Size(180, 22);
@@ -327,6 +329,14 @@ namespace PKHeX.WinForms
             lGPEToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             lGPEToolStripMenuItem.Text = "LGPE";
             lGPEToolStripMenuItem.Click += lGPEToolStripMenuItem_Click;
+            // 
+            // dexDataToolStripMenuItem
+            // 
+            dexDataToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { generateToolStripMenuItem });
+            dexDataToolStripMenuItem.Image = Properties.Resources.export;
+            dexDataToolStripMenuItem.Name = "dexDataToolStripMenuItem";
+            dexDataToolStripMenuItem.Size = new System.Drawing.Size(182, 22);
+            dexDataToolStripMenuItem.Text = "Dex Data";
             // 
             // Menu_Folder
             // 
@@ -529,6 +539,13 @@ namespace PKHeX.WinForms
             splitContainer2.SplitterWidth = 1;
             splitContainer2.TabIndex = 106;
             // 
+            // generateToolStripMenuItem
+            // 
+            generateToolStripMenuItem.Name = "generateToolStripMenuItem";
+            generateToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            generateToolStripMenuItem.Text = "Generate";
+            generateToolStripMenuItem.Click += generateToolStripMenuItem_Click;
+            // 
             // Main
             // 
             AllowDrop = true;
@@ -607,6 +624,8 @@ namespace PKHeX.WinForms
         private System.Windows.Forms.ToolStripMenuItem lAToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem bDSPToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem lGPEToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem dexDataToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem generateToolStripMenuItem;
     }
 }
 

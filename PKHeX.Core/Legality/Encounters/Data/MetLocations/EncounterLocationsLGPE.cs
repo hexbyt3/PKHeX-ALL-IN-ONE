@@ -171,6 +171,21 @@ public static class EncounterLocationsLGPE
         }
     }
 
+    private static int GetEvolutionLevel(EvolutionMethod evo, int baseLevel)
+    {
+        // For level-up evolutions with a specific level requirement
+        if (evo.Level > 0)
+            return evo.Level;
+        // For level-up by gained levels
+        if (evo.LevelUp > 0)
+            return baseLevel + evo.LevelUp;
+        // For some types of level-up evolutions, the argument field has the level
+        if (evo.Method == EvolutionType.LevelUp && evo.Argument > 0)
+            return evo.Argument;
+        // Default to base level if no level requirement is specified
+        return baseLevel;
+    }
+
     private static void ProcessEvolutions(int speciesIndex, int form, int baseLevel, int locationId, string locationName,
         bool isShinyLocked, string fixedBall, string versionName, string encounterType,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
@@ -196,20 +211,8 @@ public static class EncounterLocationsLGPE
                 continue;
             }
 
-            // Get evolution level directly from the evolution method data
-            int evolutionLevel = baseLevel;
-
-            if (evo.Level > 0)
-            {
-                // Evolution requires a specific level (like Level 16 for Charmeleon)
-                evolutionLevel = Math.Max(evolutionLevel, evo.Level);
-            }
-
-            if (evo.LevelUp > 0)
-            {
-                // Evolution requires gaining levels relative to current level
-                evolutionLevel = Math.Max(evolutionLevel, baseLevel + evo.LevelUp);
-            }
+            // Get evolution level using our helper method
+            int evolutionLevel = GetEvolutionLevel(evo, baseLevel);
 
             // Final minimum level is the evolution requirement or the original level, whichever is higher
             int minLevel = Math.Max(baseLevel, evolutionLevel);
@@ -252,4 +255,3 @@ public static class EncounterLocationsLGPE
         public string? EncounterVersion { get; set; }
     }
 }
-

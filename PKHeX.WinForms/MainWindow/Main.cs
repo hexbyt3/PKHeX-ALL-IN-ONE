@@ -607,8 +607,8 @@ public partial class Main : Form
 #if DEBUG
         OpenFile(input, path, ext);
 #else
-            try { OpenFile(input, path, ext); }
-            catch (Exception e) { WinFormsUtil.Error(MsgFileLoadFail + "\nPath: " + path, e); }
+        try { OpenFile(input, path, ext); }
+        catch (Exception e) { WinFormsUtil.Error(MsgFileLoadFail + "\nPath: " + path, e); }
 #endif
     }
 
@@ -886,7 +886,7 @@ public partial class Main : Form
         string version = $"d-{date:yyyyMMdd}";
 #else
         var v = Program.CurrentVersion;
-        string version = $"{2000+v.Major:00}{v.Minor:00}{v.Build:00}";
+        string version = $"{2000 + v.Major:00}{v.Minor:00}{v.Build:00}";
 #endif
         return $"PKH{(HaX ? "a" : "e")}X ({version})";
     }
@@ -1521,4 +1521,46 @@ public partial class Main : Form
         }
     }
     #endregion
+
+    private void generateToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            string executablePath = Application.ExecutablePath;
+            string executableDirectory = Path.GetDirectoryName(executablePath);
+            string outputDirectory = Path.Combine(executableDirectory, "Pokemon_Database");
+            string errorLogPath = Path.Combine(executableDirectory, "pokemon_database_error_log.txt");
+
+            // Call the method to generate the Pokemon database JSON files
+            PokemonDbGenerator.GenerateAllPokemonDataJSON(outputDirectory, errorLogPath);
+
+            if (Directory.Exists(outputDirectory) && Directory.GetFiles(outputDirectory, "*.json").Length > 0)
+            {
+                MessageBox.Show(
+                    $"Pokemon database JSON files generated successfully in:\n{outputDirectory}",
+                    "JSON Generated",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"Failed to generate JSON files. Please check the error log at:\n{errorLogPath}",
+                    "JSON Generation Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"An error occurred: {ex.Message}",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
+        }
+    }
 }

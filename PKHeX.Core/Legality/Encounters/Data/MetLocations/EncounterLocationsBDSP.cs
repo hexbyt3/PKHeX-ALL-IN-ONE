@@ -231,20 +231,22 @@ public static class EncounterLocationsBDSP
                 continue;
             }
 
-            int evolutionMinLevel = GetMinEvolutionLevel(baseSpecies, evoSpecies);
+            // Get the minimum level required for evolution with correct form parameters
+            int evolutionMinLevel = GetMinEvolutionLevel(baseSpecies, form, evoSpecies, evoForm);
+            // The minimum level for the evolved form is the maximum of the base level and the evolution level
             int minLevel = Math.Max(baseLevel, evolutionMinLevel);
 
             AddSingleEncounterInfo(
                 encounterData, gameStrings, errorLogger,
                 evoSpecies, evoForm, locationName, locationId,
-                (byte)minLevel, (byte)maxLevel, metLevel, $"{encounterType} (Evolved)",
+                (byte)minLevel, maxLevel, metLevel, $"{encounterType} (Evolved)",
                 isShinyLocked, isGift, fixedBall,
                 version, isUnderground);
 
             ProcessEvolutionLine(
                 encounterData, gameStrings, errorLogger,
                 evoSpecies, evoForm, locationName, locationId,
-                (byte)minLevel, (byte)maxLevel, metLevel, encounterType,
+                (byte)minLevel, maxLevel, metLevel, encounterType,
                 isShinyLocked, isGift, fixedBall,
                 version, isUnderground, pt, processedForms);
         }
@@ -283,31 +285,28 @@ public static class EncounterLocationsBDSP
         return results;
     }
 
-    private static int GetMinEvolutionLevel(ushort baseSpecies, ushort evolvedSpecies)
+    private static int GetMinEvolutionLevel(ushort baseSpecies, byte baseForm, ushort evolvedSpecies, byte evolvedForm)
     {
         var tree = EvolutionTree.GetEvolutionTree(EntityContext.Gen8b);
         int minLevel = 1;
 
-        var evos = tree.Forward.GetForward(baseSpecies, 0);
+        var evos = tree.Forward.GetForward(baseSpecies, baseForm);
         foreach (var evo in evos.Span)
         {
-            if (evo.Species == evolvedSpecies)
+            if (evo.Species == evolvedSpecies && evo.Form == evolvedForm)
             {
-                int levelRequirement = evo.LevelUp > 0 ? evo.LevelUp :
-                                       evo.Method == EvolutionType.LevelUp ? evo.Argument : 1;
+                int levelRequirement = GetEvolutionLevel(evo);
                 minLevel = Math.Max(minLevel, levelRequirement);
                 return minLevel;
             }
 
-            var secondaryEvos = tree.Forward.GetForward((ushort)evo.Species, 0);
+            var secondaryEvos = tree.Forward.GetForward((ushort)evo.Species, (byte)evo.Form);
             foreach (var secondEvo in secondaryEvos.Span)
             {
-                if (secondEvo.Species == evolvedSpecies)
+                if (secondEvo.Species == evolvedSpecies && secondEvo.Form == evolvedForm)
                 {
-                    int firstEvolutionLevel = evo.LevelUp > 0 ? evo.LevelUp :
-                                              evo.Method == EvolutionType.LevelUp ? evo.Argument : 1;
-                    int secondEvolutionLevel = secondEvo.LevelUp > 0 ? secondEvo.LevelUp :
-                                               secondEvo.Method == EvolutionType.LevelUp ? secondEvo.Argument : 1;
+                    int firstEvolutionLevel = GetEvolutionLevel(evo);
+                    int secondEvolutionLevel = GetEvolutionLevel(secondEvo);
 
                     minLevel = Math.Max(minLevel, Math.Max(firstEvolutionLevel, secondEvolutionLevel));
                     return minLevel;
@@ -316,6 +315,15 @@ public static class EncounterLocationsBDSP
         }
 
         return minLevel;
+    }
+
+    private static int GetEvolutionLevel(EvolutionMethod evo)
+    {
+        if (evo.Level > 0)
+            return evo.Level;
+        if (evo.Method == EvolutionType.LevelUp && evo.Argument > 0)
+            return evo.Argument;
+        return 0;
     }
 
     private static void AddSingleEncounterInfo(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
