@@ -5,8 +5,17 @@ using System.Text;
 using System.Text.Json;
 
 namespace PKHeX.Core.Legality.Encounters.Data.MetLocations;
+
+/// <summary>
+/// Generates encounter location data for Let's Go Pikachu and Let's Go Eevee games.
+/// </summary>
 public static class EncounterLocationsLGPE
 {
+    /// <summary>
+    /// Generates JSON data for all encounters in Let's Go Pikachu and Let's Go Eevee.
+    /// </summary>
+    /// <param name="outputPath">Path where the JSON file will be saved</param>
+    /// <param name="errorLogPath">Path for logging errors during generation</param>
     public static void GenerateEncounterDataJSON(string outputPath, string errorLogPath)
     {
         try
@@ -39,11 +48,7 @@ public static class EncounterLocationsLGPE
             };
             string jsonString = JsonSerializer.Serialize(encounterData, jsonOptions);
 
-            using (var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
-            using (var streamWriter = new StreamWriter(fileStream, new UTF8Encoding(false)))
-            {
-                streamWriter.Write(jsonString);
-            }
+            File.WriteAllText(outputPath, jsonString, new UTF8Encoding(false));
 
             errorLogger.WriteLine($"[{DateTime.Now}] JSON file generated successfully without BOM at: {outputPath}");
         }
@@ -56,6 +61,9 @@ public static class EncounterLocationsLGPE
         }
     }
 
+    /// <summary>
+    /// Processes encounter slots for a specific game version.
+    /// </summary>
     private static void ProcessEncounterSlots(EncounterArea7b[] areas, string versionName, Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
         foreach (var area in areas)
@@ -68,11 +76,14 @@ public static class EncounterLocationsLGPE
             foreach (var slot in area.Slots)
             {
                 AddEncounterInfoWithEvolutions(encounterData, gameStrings, errorLogger, slot.Species, slot.Form,
-                    locationName, locationId, slot.LevelMin, slot.LevelMax, "Wild", false, string.Empty, versionName);
+                    locationName, locationId, slot.LevelMin, slot.LevelMax, "Wild", false, string.Empty, versionName, 0, string.Empty);
             }
         }
     }
 
+    /// <summary>
+    /// Processes static encounters for a specific game version.
+    /// </summary>
     private static void ProcessStaticEncounters(EncounterStatic7b[] encounters, string versionName, Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
         foreach (var encounter in encounters)
@@ -82,14 +93,26 @@ public static class EncounterLocationsLGPE
             if (string.IsNullOrEmpty(locationName))
                 locationName = $"Unknown Location {locationId}";
 
+            string setIVs = string.Empty;
+            int flawlessIVCount = encounter.FlawlessIVCount;
+
+            if (encounter.IVs != null && !IsEmptyIVs(encounter.IVs))
+            {
+                setIVs = FormatIVs(encounter.IVs);
+                flawlessIVCount = 0; // If specific IVs are set, don't use FlawlessIVCount
+            }
+
             AddEncounterInfoWithEvolutions(encounterData, gameStrings, errorLogger, encounter.Species, encounter.Form,
                 locationName, locationId, encounter.Level, encounter.Level, "Static",
                 encounter.Shiny == Shiny.Never,
                 encounter.FixedBall != Ball.None ? encounter.FixedBall.ToString() : string.Empty,
-                versionName);
+                versionName, flawlessIVCount, setIVs);
         }
     }
 
+    /// <summary>
+    /// Processes trade encounters for a specific game version.
+    /// </summary>
     private static void ProcessTradeEncounters(EncounterTrade7b[] encounters, string versionName, Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
         const int tradeLocationId = 30001;
@@ -97,32 +120,45 @@ public static class EncounterLocationsLGPE
 
         foreach (var encounter in encounters)
         {
+            string setIVs = string.Empty;
+            int flawlessIVCount = 0;
+
+            if (encounter.IVs != null && !IsEmptyIVs(encounter.IVs))
+            {
+                setIVs = FormatIVs(encounter.IVs);
+            }
+
             AddEncounterInfoWithEvolutions(encounterData, gameStrings, errorLogger, encounter.Species, encounter.Form,
                 tradeLocationName, tradeLocationId, encounter.Level, encounter.Level, "Trade",
-                encounter.Shiny == Shiny.Never, encounter.FixedBall.ToString(), versionName);
+                encounter.Shiny == Shiny.Never, encounter.FixedBall.ToString(), versionName, flawlessIVCount, setIVs);
         }
     }
 
+    /// <summary>
+    /// Adds encounter information for a Pokémon and all its possible evolutions.
+    /// </summary>
     private static void AddEncounterInfoWithEvolutions(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int speciesIndex, int form, string locationName, int locationId,
-        int minLevel, int maxLevel, string encounterType, bool isShinyLocked, string fixedBall, string encounterVersion)
+        int minLevel, int maxLevel, string encounterType, bool isShinyLocked, string fixedBall, string encounterVersion,
+        int flawlessIVCount, string setIVs)
     {
-        // Add the base species encounter
         AddSingleEncounterInfo(encounterData, gameStrings, errorLogger, speciesIndex, form, locationName, locationId,
-            minLevel, maxLevel, encounterType, isShinyLocked, fixedBall, encounterVersion);
+            minLevel, maxLevel, encounterType, isShinyLocked, fixedBall, encounterVersion, null, flawlessIVCount, setIVs);
 
         var processedForms = new HashSet<(int Species, int Form)> { ((int)speciesIndex, form) };
 
-        // Process all possible evolutions
         ProcessEvolutions(speciesIndex, form, minLevel, locationId, locationName, isShinyLocked,
-            fixedBall, encounterVersion, encounterType, encounterData, gameStrings, errorLogger, processedForms);
+            fixedBall, encounterVersion, encounterType, encounterData, gameStrings, errorLogger, processedForms, flawlessIVCount, setIVs);
     }
 
+    /// <summary>
+    /// Adds a single encounter information entry to the encounter data dictionary.
+    /// </summary>
     private static void AddSingleEncounterInfo(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int speciesIndex, int form, string locationName, int locationId,
-        int minLevel, int maxLevel, string encounterType, bool isShinyLocked, string fixedBall, string encounterVersion, int? metLevel = null)
+        int minLevel, int maxLevel, string encounterType, bool isShinyLocked, string fixedBall, string encounterVersion,
+        int? metLevel = null, int flawlessIVCount = 0, string setIVs = "")
     {
-        // Normalize form value - use 0 for default form (255 is sometimes used as a placeholder)
         form = form == 255 ? 0 : form;
 
         string dexNumber = speciesIndex.ToString();
@@ -130,7 +166,7 @@ public static class EncounterLocationsLGPE
             dexNumber += $"-{form}";
 
         if (!encounterData.ContainsKey(dexNumber))
-            encounterData[dexNumber] = new List<EncounterInfo>();
+            encounterData[dexNumber] = [];
 
         var speciesName = gameStrings.specieslist[speciesIndex];
         if (string.IsNullOrEmpty(speciesName))
@@ -139,7 +175,6 @@ public static class EncounterLocationsLGPE
             return;
         }
 
-        // Create a new encounter info entry with all details
         var encounterInfo = new EncounterInfo
         {
             SpeciesName = speciesName,
@@ -149,14 +184,15 @@ public static class EncounterLocationsLGPE
             LocationId = locationId,
             MinLevel = minLevel,
             MaxLevel = maxLevel,
-            MetLevel = metLevel ?? minLevel, // Use provided metLevel for evolved forms, otherwise use minLevel
+            MetLevel = metLevel ?? minLevel,
             EncounterType = encounterType,
             IsShinyLocked = isShinyLocked,
             FixedBall = fixedBall,
-            EncounterVersion = encounterVersion
+            EncounterVersion = encounterVersion,
+            FlawlessIVCount = flawlessIVCount,
+            SetIVs = setIVs
         };
 
-        // Add to the dictionary, ensuring no duplicates
         bool isDuplicate = encounterData[dexNumber].Exists(e =>
             e.LocationId == locationId &&
             e.EncounterType == encounterType &&
@@ -167,29 +203,32 @@ public static class EncounterLocationsLGPE
         if (!isDuplicate)
         {
             encounterData[dexNumber].Add(encounterInfo);
-            errorLogger.WriteLine($"[{DateTime.Now}] Processed encounter: {speciesName} (Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {minLevel}-{maxLevel}, Type: {encounterType}");
+            errorLogger.WriteLine($"[{DateTime.Now}] Processed encounter: {speciesName} (Dex: {dexNumber}) at {locationName} (ID: {locationId}), " +
+                $"Levels {minLevel}-{maxLevel}, Type: {encounterType}, IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}");
         }
     }
 
+    /// <summary>
+    /// Gets the minimum level required for evolution based on the evolution method.
+    /// </summary>
     private static int GetEvolutionLevel(EvolutionMethod evo, int baseLevel)
     {
-        // For level-up evolutions with a specific level requirement
         if (evo.Level > 0)
             return evo.Level;
-        // For level-up by gained levels
         if (evo.LevelUp > 0)
             return baseLevel + evo.LevelUp;
-        // For some types of level-up evolutions, the argument field has the level
         if (evo.Method == EvolutionType.LevelUp && evo.Argument > 0)
             return evo.Argument;
-        // Default to base level if no level requirement is specified
         return baseLevel;
     }
 
+    /// <summary>
+    /// Processes all possible evolutions of a Pokémon and adds them to the encounter data.
+    /// </summary>
     private static void ProcessEvolutions(int speciesIndex, int form, int baseLevel, int locationId, string locationName,
         bool isShinyLocked, string fixedBall, string versionName, string encounterType,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
-        StreamWriter errorLogger, HashSet<(int Species, int Form)> processedForms)
+        StreamWriter errorLogger, HashSet<(int Species, int Form)> processedForms, int flawlessIVCount, string setIVs)
     {
         var tree = EvolutionTree.GetEvolutionTree(EntityContext.Gen7b);
         var evos = tree.Forward.GetForward((ushort)speciesIndex, (byte)form);
@@ -197,10 +236,8 @@ public static class EncounterLocationsLGPE
         foreach (var evo in evos.Span)
         {
             int evolvedSpecies = evo.Species;
-            // Normalize form value - use 0 for default form (255 is often used as a placeholder)
             int evolvedForm = evo.Form == 255 ? 0 : evo.Form;
 
-            // Avoid processing the same species+form combination multiple times
             if (!processedForms.Add((evolvedSpecies, evolvedForm)))
                 continue;
 
@@ -211,13 +248,9 @@ public static class EncounterLocationsLGPE
                 continue;
             }
 
-            // Get evolution level using our helper method
             int evolutionLevel = GetEvolutionLevel(evo, baseLevel);
-
-            // Final minimum level is the evolution requirement or the original level, whichever is higher
             int minLevel = Math.Max(baseLevel, evolutionLevel);
 
-            // Normalize evolved form for consistent key generation
             evolvedForm = evolvedForm == 255 ? 0 : evolvedForm;
 
             string evolvedDexNumber = evolvedSpecies.ToString();
@@ -225,33 +258,115 @@ public static class EncounterLocationsLGPE
                 evolvedDexNumber += $"-{evolvedForm}";
 
             if (!encounterData.ContainsKey(evolvedDexNumber))
-                encounterData[evolvedDexNumber] = new List<EncounterInfo>();
+                encounterData[evolvedDexNumber] = [];
 
-            // Ensure we preserve the original location
             string evolvedEncounterType = $"{encounterType} (Evolved)";
 
             AddSingleEncounterInfo(encounterData, gameStrings, errorLogger, evolvedSpecies, evolvedForm, locationName, locationId,
-                minLevel, 100, evolvedEncounterType, isShinyLocked, fixedBall, versionName, baseLevel);
+                minLevel, 100, evolvedEncounterType, isShinyLocked, fixedBall, versionName, baseLevel, flawlessIVCount, setIVs);
 
-            // Recursively process further evolutions, ensuring the location data is preserved
             ProcessEvolutions(evolvedSpecies, evolvedForm, minLevel, locationId, locationName,
-                isShinyLocked, fixedBall, versionName, encounterType, encounterData, gameStrings, errorLogger, processedForms);
+                isShinyLocked, fixedBall, versionName, encounterType, encounterData, gameStrings, errorLogger, processedForms, flawlessIVCount, setIVs);
         }
     }
 
-    private class EncounterInfo
+    /// <summary>
+    /// Formats IVs as a string for display and storage.
+    /// </summary>
+    private static string FormatIVs(IndividualValueSet ivs)
     {
-        public string? SpeciesName { get; set; }
-        public int SpeciesIndex { get; set; }
-        public int Form { get; set; }
-        public string? LocationName { get; set; }
-        public int LocationId { get; set; }
-        public int MinLevel { get; set; }
-        public int MaxLevel { get; set; }
-        public int MetLevel { get; set; }
-        public string? EncounterType { get; set; }
-        public bool IsShinyLocked { get; set; }
-        public string? FixedBall { get; set; }
-        public string? EncounterVersion { get; set; }
+        var ivParts = new List<string>(6);
+
+        if (ivs.HP >= 0) ivParts.Add($"HP:{ivs.HP}");
+        if (ivs.ATK >= 0) ivParts.Add($"Atk:{ivs.ATK}");
+        if (ivs.DEF >= 0) ivParts.Add($"Def:{ivs.DEF}");
+        if (ivs.SPA >= 0) ivParts.Add($"SpA:{ivs.SPA}");
+        if (ivs.SPD >= 0) ivParts.Add($"SpD:{ivs.SPD}");
+        if (ivs.SPE >= 0) ivParts.Add($"Spe:{ivs.SPE}");
+
+        return string.Join(", ", ivParts);
+    }
+
+    /// <summary>
+    /// Checks if all IVs are unspecified (-1).
+    /// </summary>
+    private static bool IsEmptyIVs(IndividualValueSet ivs) =>
+        ivs.HP == -1 && ivs.ATK == -1 && ivs.DEF == -1 &&
+        ivs.SPA == -1 && ivs.SPD == -1 && ivs.SPE == -1;
+
+    /// <summary>
+    /// Contains information about a single encounter.
+    /// </summary>
+    private sealed class EncounterInfo
+    {
+        /// <summary>
+        /// Name of the Pokémon species.
+        /// </summary>
+        public required string SpeciesName { get; set; }
+
+        /// <summary>
+        /// National Pokédex index of the species.
+        /// </summary>
+        public required int SpeciesIndex { get; set; }
+
+        /// <summary>
+        /// Form number of the Pokémon.
+        /// </summary>
+        public required int Form { get; set; }
+
+        /// <summary>
+        /// Name of the location where the Pokémon can be encountered.
+        /// </summary>
+        public required string LocationName { get; set; }
+
+        /// <summary>
+        /// Internal ID of the location.
+        /// </summary>
+        public required int LocationId { get; set; }
+
+        /// <summary>
+        /// Minimum level of the Pokémon at this encounter.
+        /// </summary>
+        public required int MinLevel { get; set; }
+
+        /// <summary>
+        /// Maximum level of the Pokémon at this encounter.
+        /// </summary>
+        public required int MaxLevel { get; set; }
+
+        /// <summary>
+        /// Level recorded as the "met level" for this encounter.
+        /// </summary>
+        public required int MetLevel { get; set; }
+
+        /// <summary>
+        /// Type of encounter (Wild, Static, Trade, etc.).
+        /// </summary>
+        public required string EncounterType { get; set; }
+
+        /// <summary>
+        /// Indicates whether the Pokémon cannot be shiny in this encounter.
+        /// </summary>
+        public required bool IsShinyLocked { get; set; }
+
+        /// <summary>
+        /// The fixed Poké Ball if required for this encounter.
+        /// </summary>
+        public required string FixedBall { get; set; }
+
+        /// <summary>
+        /// Version of the game where this encounter is available.
+        /// </summary>
+        public required string EncounterVersion { get; set; }
+
+        /// <summary>
+        /// Number of guaranteed perfect IVs (31) for this encounter.
+        /// </summary>
+        public int FlawlessIVCount { get; set; }
+
+        /// <summary>
+        /// String representation of fixed IV values for this encounter.
+        /// </summary>
+        public string SetIVs { get; set; } = string.Empty;
     }
 }

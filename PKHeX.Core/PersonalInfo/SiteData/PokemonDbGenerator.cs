@@ -190,7 +190,7 @@ public static class PokemonDbGenerator
         string dexNumber = form > 0 ? $"{species}-{form}" : species.ToString();
         var legalBalls = GetLegalBalls(species, form, game);
 
-        var info = new PokemonDbInfo
+        return new PokemonDbInfo
         {
             DexNumber = dexNumber,
             Name = speciesName,
@@ -212,9 +212,6 @@ public static class PokemonDbGenerator
             DeName = GetFormNameByLanguage(species, form, "de"),
             JpName = GetFormNameByLanguage(species, form, "ja")
         };
-
-        UpdateIVRequirements(info, species, form, game);
-        return info;
     }
 
     /// <summary>
@@ -231,15 +228,12 @@ public static class PokemonDbGenerator
             FormInfo.IsBattleOnlyForm((ushort)species, form, format))
             return true;
 
-        // Exclude Keldeo-Resolute form (form 1)
         if (species == (int)Species.Keldeo && form == 1)
             return true;
 
-        // Skip Alcremie forms
         if (species == (int)Species.Alcremie && form > 0)
             return true;
 
-        // Skip other untradable forms
         if (species is (int)Species.Koraidon or (int)Species.Miraidon && formArg == 1)
             return true;
 
@@ -251,321 +245,6 @@ public static class PokemonDbGenerator
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Updates IV requirements information for a Pokemon.
-    /// </summary>
-    /// <param name="info">Pokemon database info to update</param>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    /// <param name="game">Game version</param>
-    private static void UpdateIVRequirements(PokemonDbInfo info, int species, byte form, GameVersion game)
-    {
-        byte format = game.GetGeneration();
-        if (ShouldExcludeForm(species, form, format))
-            return;
-
-        switch (game)
-        {
-            case GameVersion.SV:
-                CheckEncountersSV(info, species, form);
-                break;
-            case GameVersion.SWSH:
-                CheckEncountersSWSH(info, species, form);
-                break;
-            case GameVersion.BDSP:
-                CheckEncountersBDSP(info, species, form);
-                break;
-            case GameVersion.PLA:
-                CheckEncountersPLA(info, species, form);
-                break;
-            case GameVersion.GG:
-                CheckEncountersGG(info, species, form);
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Checks Scarlet/Violet encounters for IV requirements.
-    /// </summary>
-    /// <param name="info">Pokemon database info to update</param>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    private static void CheckEncountersSV(PokemonDbInfo info, int species, byte form)
-    {
-        // Check standard encounters
-        foreach (var encounter in Encounters9.Encounter_SV
-                 .Concat(Encounters9.StaticSL)
-                 .Concat(Encounters9.StaticVL))
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.IVs != null && encounter.IVs.IsSpecified)
-            {
-                info.SetIVs = FormatIVs(encounter.IVs);
-                return;
-            }
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-
-        // Check Fixed encounters
-        foreach (var encounter in Encounters9.Fixed)
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-
-        // Check Tera raid encounters
-        var teraEncounters = Encounters9.TeraBase
-            .Concat(Encounters9.TeraDLC1)
-            .Concat(Encounters9.TeraDLC2)
-            .Cast<IFlawlessIVCount>()
-            .Concat(Encounters9.Dist)
-            .Concat(Encounters9.Might);
-
-        foreach (var encounter in teraEncounters)
-        {
-            if ((encounter as dynamic).Species != species || (encounter as dynamic).Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks Sword/Shield encounters for IV requirements.
-    /// </summary>
-    /// <param name="info">Pokemon database info to update</param>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    private static void CheckEncountersSWSH(PokemonDbInfo info, int species, byte form)
-    {
-        // Check static encounters
-        foreach (var encounter in Encounters8.StaticSWSH
-                 .Concat(Encounters8.StaticSW)
-                 .Concat(Encounters8.StaticSH))
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-
-            if (encounter.IVs != null && IsActuallySpecifiedIVs(encounter.IVs))
-            {
-                info.SetIVs = FormatIVs(encounter.IVs);
-                return;
-            }
-        }
-
-        // Check nest encounters (Max Raid Battles)
-        foreach (var encounter in Encounters8Nest.Nest_SW.Concat(Encounters8Nest.Nest_SH))
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-
-        // Check distribution raids
-        foreach (var encounter in Encounters8Nest.Dist_SW.Concat(Encounters8Nest.Dist_SH))
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-
-        // Check Dynamax Adventure encounters
-        foreach (var encounter in Encounters8Nest.DynAdv_SWSH)
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks if IVs are actually specified for an encounter.
-    /// </summary>
-    /// <param name="ivs">Individual value set</param>
-    /// <returns>True if IVs are specified, false otherwise</returns>
-    private static bool IsActuallySpecifiedIVs(IndividualValueSet ivs)
-    {
-        bool hasNonZeroIV = ivs.HP > 0 || ivs.ATK > 0 || ivs.DEF > 0 ||
-                           ivs.SPA > 0 || ivs.SPD > 0 || ivs.SPE > 0;
-
-        bool hasMixedValues = (ivs.HP != ivs.ATK || ivs.ATK != ivs.DEF || ivs.DEF != ivs.SPA ||
-                              ivs.SPA != ivs.SPD || ivs.SPD != ivs.SPE);
-
-        bool hasNegativeIV = ivs.HP == -1 || ivs.ATK == -1 || ivs.DEF == -1 ||
-                             ivs.SPA == -1 || ivs.SPD == -1 || ivs.SPE == -1;
-
-        return (hasNonZeroIV || (hasMixedValues && !hasNegativeIV));
-    }
-
-    /// <summary>
-    /// Checks BD/SP encounters for IV requirements.
-    /// </summary>
-    /// <param name="info">Pokemon database info to update</param>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    private static void CheckEncountersBDSP(PokemonDbInfo info, int species, byte form)
-    {
-        // Check static encounters
-        foreach (var encounter in Encounters8b.Encounter_BDSP
-                 .Concat(Encounters8b.StaticBD)
-                 .Concat(Encounters8b.StaticSP))
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-
-        // Check trade gifts
-        foreach (var trade in Encounters8b.TradeGift_BDSP)
-        {
-            if (trade.Species != species || trade.Form != form)
-                continue;
-
-            if (trade.IVs != null && !IsEmptyIVs(trade.IVs))
-            {
-                info.SetIVs = FormatIVs(trade.IVs);
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks Legends Arceus encounters for IV requirements.
-    /// </summary>
-    /// <param name="info">Pokemon database info to update</param>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    private static void CheckEncountersPLA(PokemonDbInfo info, int species, byte form)
-    {
-        foreach (var encounter in Encounters8a.StaticLA)
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks Let's Go encounters for IV requirements.
-    /// </summary>
-    /// <param name="info">Pokemon database info to update</param>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    private static void CheckEncountersGG(PokemonDbInfo info, int species, byte form)
-    {
-        // Check static encounters
-        foreach (var encounter in Encounters7GG.Encounter_GG
-                 .Concat(Encounters7GG.StaticGP)
-                 .Concat(Encounters7GG.StaticGE))
-        {
-            if (encounter.Species != species || encounter.Form != form)
-                continue;
-
-            if (encounter.IVs != null && !IsEmptyIVs(encounter.IVs))
-            {
-                info.SetIVs = FormatIVs(encounter.IVs);
-                return;
-            }
-
-            if (encounter.FlawlessIVCount > 0)
-            {
-                info.SetIVs = $"{encounter.FlawlessIVCount} perfect IVs";
-                return;
-            }
-        }
-
-        // Check trade gifts
-        foreach (var trade in Encounters7GG.TradeGift_GG
-                 .Concat(Encounters7GG.TradeGift_GP)
-                 .Concat(Encounters7GG.TradeGift_GE))
-        {
-            if (trade.Species != species || trade.Form != form)
-                continue;
-
-            if (trade.IVs != null && !IsEmptyIVs(trade.IVs))
-            {
-                info.SetIVs = FormatIVs(trade.IVs);
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks if all IVs are unspecified (-1).
-    /// </summary>
-    /// <param name="ivs">Individual value set</param>
-    /// <returns>True if all IVs are unspecified, false otherwise</returns>
-    private static bool IsEmptyIVs(IndividualValueSet ivs) =>
-        ivs.HP == -1 && ivs.ATK == -1 && ivs.DEF == -1 &&
-        ivs.SPA == -1 && ivs.SPD == -1 && ivs.SPE == -1;
-
-    /// <summary>
-    /// Formats IVs as a string, handling -1 (random) values.
-    /// </summary>
-    /// <param name="ivs">Individual value set</param>
-    /// <returns>Formatted IV string</returns>
-    private static string FormatIVs(IndividualValueSet ivs)
-    {
-        var ivParts = new List<string>(6);
-
-        if (ivs.HP != -1) ivParts.Add($"HP:{ivs.HP}");
-        if (ivs.ATK != -1) ivParts.Add($"Atk:{ivs.ATK}");
-        if (ivs.DEF != -1) ivParts.Add($"Def:{ivs.DEF}");
-        if (ivs.SPA != -1) ivParts.Add($"SpA:{ivs.SPA}");
-        if (ivs.SPD != -1) ivParts.Add($"SpD:{ivs.SPD}");
-        if (ivs.SPE != -1) ivParts.Add($"Spe:{ivs.SPE}");
-
-        return string.Join(", ", ivParts);
     }
 
     /// <summary>
@@ -645,30 +324,24 @@ public static class PokemonDbGenerator
     {
         if (encounter is IFixedBall fixedBall && fixedBall.FixedBall != Ball.None)
         {
-            // For encounters with a fixed ball, only that ball is legal
             legalBalls.Add((int)fixedBall.FixedBall);
         }
         else if (encounter is EncounterEgg)
         {
-            // For eggs, apply breeding ball inheritance rules
             AddBallInheritanceOptions(pk.Species, pk.Form, encounter, legalBalls);
         }
         else
         {
-            // For wild encounters, add all balls valid for the encounter's generation and version
             ulong validBalls = BallUseLegality.GetWildBalls(encounter.Generation, encounter.Version);
 
-            // Make sure LA balls are only valid for LA games
             if (encounter.Version != GameVersion.PLA)
             {
-                // Maximum non-LA ball ID (adjust if needed)
                 int maxBallID = 38;
 
                 for (int i = 1; i <= maxBallID; i++)
                 {
                     if (BallUseLegality.IsBallPermitted(validBalls, (byte)i))
                     {
-                        // Handle special cases like Heavy Ball in Gen 7
                         if (i == (int)Ball.Heavy && encounter.Generation == 7 &&
                             BallUseLegality.IsAlolanCaptureNoHeavyBall(pk.Species))
                             continue;
@@ -679,8 +352,7 @@ public static class PokemonDbGenerator
             }
             else
             {
-                // For PLA, include all valid balls including LA balls
-                for (int i = 1; i <= 60; i++) // Adjust upper bound as needed to include all LA balls
+                for (int i = 1; i <= 60; i++)
                 {
                     if (BallUseLegality.IsBallPermitted(validBalls, (byte)i))
                         legalBalls.Add(i);
@@ -712,7 +384,6 @@ public static class PokemonDbGenerator
                 {
                     if (BallUseLegality.IsBallPermitted(validBalls, (byte)i))
                     {
-                        // Master Ball and Cherish Ball can't be inherited
                         if (i == (int)Ball.Master || i == (int)Ball.Cherish)
                             continue;
 
@@ -723,7 +394,6 @@ public static class PokemonDbGenerator
         }
         else
         {
-            // Pre-Gen 6 only used Poké Balls for breeding
             legalBalls.Add(14); // Poké Ball
         }
     }
@@ -749,10 +419,8 @@ public static class PokemonDbGenerator
             }
         }
 
-        // Apply special cases
         if (gameGeneration == 7 && game != GameVersion.GG)
         {
-            // Remove Heavy Ball for certain species in Gen 7
             if (BallUseLegality.IsAlolanCaptureNoHeavyBall(species) && legalBalls.Contains(30))
                 legalBalls.Remove(30);
         }
@@ -978,11 +646,6 @@ public sealed record PokemonDbInfo
     /// Comma-separated list of legal Pokeballs.
     /// </summary>
     public required string Ball { get; set; }
-
-    /// <summary>
-    /// Information about required IVs, if any.
-    /// </summary>
-    public string SetIVs { get; set; } = "";
 
     /// <summary>
     /// French name of the Pokemon.

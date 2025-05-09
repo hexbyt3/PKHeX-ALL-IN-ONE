@@ -7,10 +7,18 @@ using System.Text.Json;
 
 namespace PKHeX.Core.Legality.Encounters.Data.MetLocations;
 
+/// <summary>
+/// Generates encounter location data for Pokémon Sword and Shield games.
+/// </summary>
 public static class EncounterLocationsSWSH
 {
     private const ushort MaxLair = 244;
 
+    /// <summary>
+    /// Generates a JSON file containing all encounter data for Sword and Shield.
+    /// </summary>
+    /// <param name="outputPath">Path where the JSON file will be saved</param>
+    /// <param name="errorLogPath">Path to the error log file</param>
     public static void GenerateEncounterDataJSON(string outputPath, string errorLogPath)
     {
         try
@@ -50,6 +58,14 @@ public static class EncounterLocationsSWSH
         }
     }
 
+    /// <summary>
+    /// Processes slot-based encounters for the given areas.
+    /// </summary>
+    /// <param name="areas">Encounter areas to process</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="slotType">Type of slot (Symbol/Hidden)</param>
     private static void ProcessEncounterSlots(EncounterArea8[] areas, Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings, StreamWriter errorLogger, string slotType)
     {
@@ -64,11 +80,17 @@ public static class EncounterLocationsSWSH
 
                 AddEncounterInfoWithEvolutions(encounterData, gameStrings, errorLogger, slot.Species, slot.Form,
                     locationName, area.Location, slot.LevelMin, slot.LevelMax, $"Wild {slotType}",
-                    false, false, string.Empty, "Both", canGigantamax);
+                    false, false, string.Empty, "Both", canGigantamax, 0, string.Empty);
             }
         }
     }
 
+    /// <summary>
+    /// Processes egg-related met locations.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
     private static void ProcessEggMetLocations(Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -116,12 +138,22 @@ public static class EncounterLocationsSWSH
                     true,
                     string.Empty,
                     "Both",
-                    canGigantamax
+                    canGigantamax,
+                    0,
+                    string.Empty
                 );
             }
         }
     }
 
+    /// <summary>
+    /// Processes static encounters from the specified encounter array.
+    /// </summary>
+    /// <param name="encounters">Static encounters to process</param>
+    /// <param name="versionName">Version name (Sword/Shield/Both)</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
     private static void ProcessStaticEncounters(EncounterStatic8[] encounters, string versionName,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -133,13 +165,30 @@ public static class EncounterLocationsSWSH
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
             string fixedBall = encounter.FixedBall != Ball.None ? encounter.FixedBall.ToString() : string.Empty;
 
+            // Get IV information
+            int flawlessIVCount = encounter.FlawlessIVCount;
+            string setIVs = string.Empty;
+
+            // If the encounter has specific IVs set, create a formatted IV string
+            if (encounter.IVs != null && IsIVsSpecified(encounter.IVs))
+            {
+                setIVs = FormatIVs(encounter.IVs);
+            }
+
             AddEncounterInfoWithEvolutions(
                 encounterData, gameStrings, errorLogger, encounter.Species, encounter.Form,
                 locationName, encounter.Location, encounter.Level, encounter.Level, "Static",
-                encounter.Shiny == Shiny.Never, encounter.Gift, fixedBall, versionName, canGigantamax);
+                encounter.Shiny == Shiny.Never, encounter.Gift, fixedBall, versionName, canGigantamax,
+                flawlessIVCount, setIVs);
         }
     }
 
+    /// <summary>
+    /// Processes den-based encounters.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
     private static void ProcessDenEncounters(Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -156,6 +205,16 @@ public static class EncounterLocationsSWSH
         ProcessCrystalEncounters(Encounters8Nest.Crystal_SWSH, encounterData, gameStrings, errorLogger, denLocationId, locationName);
     }
 
+    /// <summary>
+    /// Processes standard nest (raid den) encounters.
+    /// </summary>
+    /// <param name="encounters">Nest encounters to process</param>
+    /// <param name="versionName">Version name (Sword/Shield)</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="locationId">Location ID for the den</param>
+    /// <param name="locationName">Location name for the den</param>
     private static void ProcessNestEncounters(EncounterStatic8N[] encounters, string versionName,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int locationId, string locationName)
@@ -163,6 +222,7 @@ public static class EncounterLocationsSWSH
         foreach (var encounter in encounters)
         {
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
+            int flawlessIVCount = encounter.FlawlessIVCount;
 
             AddEncounterInfoWithEvolutions(
                 encounterData,
@@ -179,11 +239,23 @@ public static class EncounterLocationsSWSH
                 false,
                 string.Empty,
                 versionName,
-                canGigantamax
+                canGigantamax,
+                flawlessIVCount,
+                string.Empty
             );
         }
     }
 
+    /// <summary>
+    /// Processes distribution raid encounters.
+    /// </summary>
+    /// <param name="encounters">Distribution encounters to process</param>
+    /// <param name="versionName">Version name (Sword/Shield)</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="locationId">Location ID for the den</param>
+    /// <param name="locationName">Location name for the den</param>
     private static void ProcessDistributionEncounters(EncounterStatic8ND[] encounters, string versionName,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int locationId, string locationName)
@@ -191,6 +263,7 @@ public static class EncounterLocationsSWSH
         foreach (var encounter in encounters)
         {
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
+            int flawlessIVCount = encounter.FlawlessIVCount;
 
             AddEncounterInfoWithEvolutions(
                 encounterData,
@@ -207,11 +280,22 @@ public static class EncounterLocationsSWSH
                 false,
                 string.Empty,
                 versionName,
-                canGigantamax
+                canGigantamax,
+                flawlessIVCount,
+                string.Empty
             );
         }
     }
 
+    /// <summary>
+    /// Processes crystal raid encounters.
+    /// </summary>
+    /// <param name="encounters">Crystal encounters to process</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="locationId">Location ID for the den</param>
+    /// <param name="locationName">Location name for the den</param>
     private static void ProcessCrystalEncounters(EncounterStatic8NC[] encounters,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int locationId, string locationName)
@@ -226,6 +310,7 @@ public static class EncounterLocationsSWSH
             };
 
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
+            int flawlessIVCount = encounter.FlawlessIVCount;
 
             AddEncounterInfoWithEvolutions(
                 encounterData,
@@ -242,11 +327,19 @@ public static class EncounterLocationsSWSH
                 false,
                 string.Empty,
                 versionName,
-                canGigantamax
+                canGigantamax,
+                flawlessIVCount,
+                string.Empty
             );
         }
     }
 
+    /// <summary>
+    /// Processes Max Lair encounters from the DLC.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
     private static void ProcessMaxLairEncounters(Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -256,14 +349,36 @@ public static class EncounterLocationsSWSH
         foreach (var encounter in Encounters8Nest.DynAdv_SWSH)
         {
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
+            int flawlessIVCount = encounter.FlawlessIVCount;
 
             AddEncounterInfoWithEvolutions(
                 encounterData, gameStrings, errorLogger, encounter.Species, encounter.Form,
                 locationName, MaxLair, encounter.Level, encounter.Level, "Max Lair",
-                encounter.Shiny == Shiny.Never, false, string.Empty, "Both", canGigantamax);
+                encounter.Shiny == Shiny.Never, false, string.Empty, "Both", canGigantamax,
+                flawlessIVCount, string.Empty);
         }
     }
 
+    /// <summary>
+    /// Adds encounter information for a species and all its possible evolutions.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="speciesIndex">Species Pokédex index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="minLevel">Minimum level</param>
+    /// <param name="maxLevel">Maximum level</param>
+    /// <param name="encounterType">Encounter type description</param>
+    /// <param name="isShinyLocked">Whether the encounter is shiny-locked</param>
+    /// <param name="isGift">Whether the encounter is a gift</param>
+    /// <param name="fixedBall">Fixed ball for the encounter, if any</param>
+    /// <param name="encounterVersion">Game version for the encounter</param>
+    /// <param name="canGigantamax">Whether the Pokémon can Gigantamax</param>
+    /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
+    /// <param name="setIVs">Fixed IVs if specified</param>
     private static void AddEncounterInfoWithEvolutions(
         Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings,
@@ -279,7 +394,9 @@ public static class EncounterLocationsSWSH
         bool isGift = false,
         string fixedBall = "",
         string encounterVersion = "Both",
-        bool canGigantamax = false)
+        bool canGigantamax = false,
+        int flawlessIVCount = 0,
+        string setIVs = "")
     {
         var pt = PersonalTable.SWSH;
         var personalInfo = pt.GetFormEntry(speciesIndex, form);
@@ -290,14 +407,39 @@ public static class EncounterLocationsSWSH
         }
 
         AddSingleEncounterInfo(encounterData, gameStrings, errorLogger, speciesIndex, form, locationName, locationId,
-            minLevel, maxLevel, minLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion, canGigantamax);
+            minLevel, maxLevel, minLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion,
+            canGigantamax, flawlessIVCount, setIVs);
 
         var processedForms = new HashSet<(ushort Species, byte Form)> { (speciesIndex, form) };
 
         ProcessEvolutionLine(encounterData, gameStrings, pt, errorLogger, speciesIndex, form, locationName, locationId,
-            minLevel, maxLevel, minLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion, canGigantamax, processedForms);
+            minLevel, maxLevel, minLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion,
+            canGigantamax, flawlessIVCount, setIVs, processedForms);
     }
 
+    /// <summary>
+    /// Processes the evolution line for a species to add all possible evolved forms.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="pt">Personal table containing species data</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="species">Species Pokédex index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="baseLevel">Base level of the Pokémon</param>
+    /// <param name="maxLevel">Maximum level</param>
+    /// <param name="metLevel">Met level</param>
+    /// <param name="encounterType">Encounter type description</param>
+    /// <param name="isShinyLocked">Whether the encounter is shiny-locked</param>
+    /// <param name="isGift">Whether the encounter is a gift</param>
+    /// <param name="fixedBall">Fixed ball for the encounter, if any</param>
+    /// <param name="encounterVersion">Game version for the encounter</param>
+    /// <param name="baseCanGigantamax">Whether the base form can Gigantamax</param>
+    /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
+    /// <param name="setIVs">Fixed IVs if specified</param>
+    /// <param name="processedForms">Set of already processed species/form combinations</param>
     private static void ProcessEvolutionLine(
         Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings,
@@ -316,6 +458,8 @@ public static class EncounterLocationsSWSH
         string fixedBall,
         string encounterVersion,
         bool baseCanGigantamax,
+        int flawlessIVCount,
+        string setIVs,
         HashSet<(ushort Species, byte Form)> processedForms)
     {
         var nextEvolutions = GetImmediateEvolutions(species, form, pt, processedForms);
@@ -338,16 +482,24 @@ public static class EncounterLocationsSWSH
 
             AddSingleEncounterInfo(
                 encounterData, gameStrings, errorLogger, evoSpecies, evoForm, locationName, locationId,
-                minLevel, 100, metLevel, $"{encounterType} (Evolved)",
-                isShinyLocked, isGift, fixedBall, encounterVersion, evoCanGigantamax);
+                minLevel, Math.Max(minLevel, maxLevel), metLevel, $"{encounterType} (Evolved)",
+                isShinyLocked, isGift, fixedBall, encounterVersion, evoCanGigantamax, flawlessIVCount, setIVs);
 
             ProcessEvolutionLine(
                 encounterData, gameStrings, pt, errorLogger, evoSpecies, evoForm, locationName, locationId,
-                minLevel, 100, metLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion,
-                evoCanGigantamax, processedForms);
+                minLevel, Math.Max(minLevel, maxLevel), metLevel, encounterType, isShinyLocked, isGift, fixedBall,
+                encounterVersion, evoCanGigantamax, flawlessIVCount, setIVs, processedForms);
         }
     }
 
+    /// <summary>
+    /// Gets the next possible evolutions for a species and form.
+    /// </summary>
+    /// <param name="species">Species Pokédex index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="pt">Personal table containing species data</param>
+    /// <param name="processedForms">Set of already processed species/form combinations</param>
+    /// <returns>List of species and form combinations that are immediate evolutions</returns>
     private static List<(ushort Species, byte Form)> GetImmediateEvolutions(
         ushort species,
         byte form,
@@ -377,6 +529,14 @@ public static class EncounterLocationsSWSH
         return results;
     }
 
+    /// <summary>
+    /// Gets the minimum level required for evolution.
+    /// </summary>
+    /// <param name="baseSpecies">Base species Pokédex index</param>
+    /// <param name="baseForm">Base form number</param>
+    /// <param name="evolvedSpecies">Evolved species Pokédex index</param>
+    /// <param name="evolvedForm">Evolved form number</param>
+    /// <returns>Minimum level required for evolution</returns>
     private static int GetMinEvolutionLevel(ushort baseSpecies, byte baseForm, ushort evolvedSpecies, byte evolvedForm)
     {
         var tree = EvolutionTree.GetEvolutionTree(EntityContext.Gen8);
@@ -409,6 +569,11 @@ public static class EncounterLocationsSWSH
         return minLevel;
     }
 
+    /// <summary>
+    /// Gets the level requirement from an evolution method.
+    /// </summary>
+    /// <param name="evo">Evolution method</param>
+    /// <returns>Level requirement or 0 if not applicable</returns>
     private static int GetEvolutionLevel(EvolutionMethod evo)
     {
         if (evo.Level > 0)
@@ -418,6 +583,27 @@ public static class EncounterLocationsSWSH
         return 0;
     }
 
+    /// <summary>
+    /// Adds a single encounter info entry to the encounter data dictionary.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game strings for localization</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    /// <param name="speciesIndex">Species Pokédex index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="minLevel">Minimum level</param>
+    /// <param name="maxLevel">Maximum level</param>
+    /// <param name="metLevel">Met level</param>
+    /// <param name="encounterType">Encounter type description</param>
+    /// <param name="isShinyLocked">Whether the encounter is shiny-locked</param>
+    /// <param name="isGift">Whether the encounter is a gift</param>
+    /// <param name="fixedBall">Fixed ball for the encounter, if any</param>
+    /// <param name="encounterVersion">Game version for the encounter</param>
+    /// <param name="canGigantamax">Whether the Pokémon can Gigantamax</param>
+    /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
+    /// <param name="setIVs">Fixed IVs if specified</param>
     private static void AddSingleEncounterInfo(
         Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings,
@@ -434,7 +620,9 @@ public static class EncounterLocationsSWSH
         bool isGift,
         string fixedBall,
         string encounterVersion,
-        bool canGigantamax)
+        bool canGigantamax,
+        int flawlessIVCount,
+        string setIVs)
     {
         string dexNumber = form > 0 ? $"{speciesIndex}-{form}" : speciesIndex.ToString();
 
@@ -478,10 +666,27 @@ public static class EncounterLocationsSWSH
             string newVersion = encounterVersion ?? string.Empty;
             existingEncounter.EncounterVersion = CombineVersions(existingVersion, newVersion);
 
+            // Update IV requirements with higher priority value (if any)
+            if (flawlessIVCount > existingEncounter.FlawlessIVCount)
+            {
+                existingEncounter.FlawlessIVCount = flawlessIVCount;
+                // Clear specific IVs if we're using flawless count
+                if (flawlessIVCount > 0)
+                    existingEncounter.SetIVs = string.Empty;
+            }
+
+            // Only set specific IVs if we don't have flawless count and new IVs are provided
+            if (existingEncounter.FlawlessIVCount == 0 && !string.IsNullOrEmpty(setIVs) &&
+                string.IsNullOrEmpty(existingEncounter.SetIVs))
+            {
+                existingEncounter.SetIVs = setIVs;
+            }
+
             errorLogger.WriteLine($"[{DateTime.Now}] Updated existing encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {existingEncounter.MinLevel}-{existingEncounter.MaxLevel}, " +
                 $"Met Level: {existingEncounter.MetLevel}, Type: {encounterType}, Version: {existingEncounter.EncounterVersion}, " +
-                $"Can Gigantamax: {canGigantamax}, Gender: {genderRatio}");
+                $"Can Gigantamax: {canGigantamax}, Gender: {genderRatio}, " +
+                $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}");
         }
         else
         {
@@ -501,16 +706,25 @@ public static class EncounterLocationsSWSH
                 FixedBall = fixedBall,
                 EncounterVersion = encounterVersion,
                 CanGigantamax = canGigantamax,
-                Gender = genderRatio
+                Gender = genderRatio,
+                FlawlessIVCount = flawlessIVCount,
+                SetIVs = setIVs
             });
 
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {minLevel}-{maxLevel}, " +
                 $"Met Level: {metLevel}, Type: {encounterType}, Version: {encounterVersion}, " +
-                $"Can Gigantamax: {canGigantamax}, Gender: {genderRatio}");
+                $"Can Gigantamax: {canGigantamax}, Gender: {genderRatio}, " +
+                $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}");
         }
     }
 
+    /// <summary>
+    /// Combines two version strings into a single one.
+    /// </summary>
+    /// <param name="version1">First version string</param>
+    /// <param name="version2">Second version string</param>
+    /// <returns>Combined version string</returns>
     private static string CombineVersions(string version1, string version2)
     {
         if (version1 == "Both" || version2 == "Both")
@@ -525,6 +739,11 @@ public static class EncounterLocationsSWSH
         return version1;
     }
 
+    /// <summary>
+    /// Determines the gender ratio of a Pokémon.
+    /// </summary>
+    /// <param name="personalInfo">Personal info of the Pokémon</param>
+    /// <returns>Gender ratio string</returns>
     private static string DetermineGenderRatio(IPersonalInfo personalInfo) => personalInfo switch
     {
         { Genderless: true } => "Genderless",
@@ -536,22 +755,129 @@ public static class EncounterLocationsSWSH
         _ => "Male, Female"
     };
 
+    /// <summary>
+    /// Checks if an IV set has any specified values.
+    /// </summary>
+    /// <param name="ivs">IV set to check</param>
+    /// <returns>True if any IVs are specified, false otherwise</returns>
+    private static bool IsIVsSpecified(IndividualValueSet ivs)
+    {
+        bool hasNonDefaultIV = ivs.HP != -1 || ivs.ATK != -1 || ivs.DEF != -1 ||
+                               ivs.SPA != -1 || ivs.SPD != -1 || ivs.SPE != -1;
+
+        bool hasMixedValues = (ivs.HP != ivs.ATK || ivs.ATK != ivs.DEF || ivs.DEF != ivs.SPA ||
+                               ivs.SPA != ivs.SPD || ivs.SPD != ivs.SPE);
+
+        return hasNonDefaultIV && hasMixedValues;
+    }
+
+    /// <summary>
+    /// Formats an IV set into a readable string.
+    /// </summary>
+    /// <param name="ivs">IV set to format</param>
+    /// <returns>Formatted IV string</returns>
+    private static string FormatIVs(IndividualValueSet ivs)
+    {
+        var ivParts = new List<string>();
+
+        if (ivs.HP != -1) ivParts.Add($"HP:{ivs.HP}");
+        if (ivs.ATK != -1) ivParts.Add($"Atk:{ivs.ATK}");
+        if (ivs.DEF != -1) ivParts.Add($"Def:{ivs.DEF}");
+        if (ivs.SPA != -1) ivParts.Add($"SpA:{ivs.SPA}");
+        if (ivs.SPD != -1) ivParts.Add($"SpD:{ivs.SPD}");
+        if (ivs.SPE != -1) ivParts.Add($"Spe:{ivs.SPE}");
+
+        return string.Join(", ", ivParts);
+    }
+
+    /// <summary>
+    /// Represents encounter information for a Pokémon.
+    /// </summary>
     private sealed class EncounterInfo
     {
+        /// <summary>
+        /// Gets or sets the English species name.
+        /// </summary>
         public required string SpeciesName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the species Pokédex index.
+        /// </summary>
         public required int SpeciesIndex { get; set; }
+
+        /// <summary>
+        /// Gets or sets the form number.
+        /// </summary>
         public required int Form { get; set; }
+
+        /// <summary>
+        /// Gets or sets the location name.
+        /// </summary>
         public required string LocationName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the location ID.
+        /// </summary>
         public required int LocationId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minimum level.
+        /// </summary>
         public required int MinLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum level.
+        /// </summary>
         public required int MaxLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the met level.
+        /// </summary>
         public required int MetLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the encounter type description.
+        /// </summary>
         public required string EncounterType { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the encounter is shiny-locked.
+        /// </summary>
         public required bool IsShinyLocked { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the encounter is a gift.
+        /// </summary>
         public required bool IsGift { get; set; }
+
+        /// <summary>
+        /// Gets or sets the fixed ball for the encounter, if any.
+        /// </summary>
         public required string FixedBall { get; set; }
+
+        /// <summary>
+        /// Gets or sets the game version for the encounter.
+        /// </summary>
         public required string EncounterVersion { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the Pokémon can Gigantamax.
+        /// </summary>
         public required bool CanGigantamax { get; set; }
+
+        /// <summary>
+        /// Gets or sets the gender ratio.
+        /// </summary>
         public required string Gender { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of guaranteed perfect IVs.
+        /// </summary>
+        public int FlawlessIVCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the fixed IV values if specified.
+        /// </summary>
+        public string SetIVs { get; set; } = string.Empty;
     }
 }

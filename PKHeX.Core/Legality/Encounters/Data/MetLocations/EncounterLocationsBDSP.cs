@@ -6,8 +6,17 @@ using System.Text;
 using System.Text.Json;
 
 namespace PKHeX.Core.Legality.Encounters.Data.MetLocations;
+
+/// <summary>
+/// Handles generation of encounter data for Brilliant Diamond and Shining Pearl.
+/// </summary>
 public static class EncounterLocationsBDSP
 {
+    /// <summary>
+    /// Generates encounter data in JSON format for BD/SP games.
+    /// </summary>
+    /// <param name="outputPath">File path where the JSON output will be written</param>
+    /// <param name="errorLogPath">File path where error logs will be written</param>
     public static void GenerateEncounterDataJSON(string outputPath, string errorLogPath)
     {
         try
@@ -46,6 +55,12 @@ public static class EncounterLocationsBDSP
         }
     }
 
+    /// <summary>
+    /// Processes wild encounter data for BD/SP.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
     private static void ProcessWildEncounters(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger)
     {
@@ -53,6 +68,14 @@ public static class EncounterLocationsBDSP
         ProcessEncounterAreas(Encounters8b.SlotsSP, GameVersion.SP, encounterData, gameStrings, errorLogger);
     }
 
+    /// <summary>
+    /// Processes encounter areas for a specific game version.
+    /// </summary>
+    /// <param name="areas">Array of encounter areas</param>
+    /// <param name="version">Game version</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
     private static void ProcessEncounterAreas(EncounterArea8b[] areas, GameVersion version,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -75,11 +98,17 @@ public static class EncounterLocationsBDSP
                     slot.Species, slot.Form, locationName, area.Location,
                     slot.LevelMin, slot.LevelMax, area.Type.ToString(),
                     false, false, string.Empty,
-                    version.ToString(), slot.IsUnderground);
+                    version.ToString(), slot.IsUnderground, 0);
             }
         }
     }
 
+    /// <summary>
+    /// Processes egg met locations for BD/SP.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
     private static void ProcessEggMetLocations(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger)
     {
@@ -87,6 +116,14 @@ public static class EncounterLocationsBDSP
         ProcessEggLocationForNursery(60010, "a Nursery Couple (2)", encounterData, gameStrings, errorLogger);
     }
 
+    /// <summary>
+    /// Processes egg locations for a specific nursery.
+    /// </summary>
+    /// <param name="eggMetLocationId">Location ID for the egg</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
     private static void ProcessEggLocationForNursery(ushort eggMetLocationId, string locationName,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -137,12 +174,19 @@ public static class EncounterLocationsBDSP
                     true,
                     string.Empty,
                     "Both",
-                    false
+                    false,
+                    0
                 );
             }
         }
     }
 
+    /// <summary>
+    /// Processes static encounter data for BD/SP.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
     private static void ProcessStaticEncounters(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger)
     {
@@ -151,6 +195,14 @@ public static class EncounterLocationsBDSP
         ProcessStaticEncounterArray(Encounters8b.StaticSP, "Shining Pearl", encounterData, gameStrings, errorLogger);
     }
 
+    /// <summary>
+    /// Processes an array of static encounters.
+    /// </summary>
+    /// <param name="encounters">Array of static encounters</param>
+    /// <param name="versionName">Game version name</param>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
     private static void ProcessStaticEncounterArray(EncounterStatic8b[] encounters, string versionName,
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger)
     {
@@ -173,13 +225,33 @@ public static class EncounterLocationsBDSP
                 encounter.Species, encounter.Form, locationName,
                 encounter.Location, encounter.Level, encounter.Level, "Static",
                 encounter.Shiny == Shiny.Never, encounter.FixedBall != Ball.None,
-                fixedBall, versionName, false);
+                fixedBall, versionName, false, encounter.FlawlessIVCount);
         }
     }
 
+    /// <summary>
+    /// Adds encounters for a Pokémon and its evolutions.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
+    /// <param name="speciesIndex">Species index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="minLevel">Minimum level</param>
+    /// <param name="maxLevel">Maximum level</param>
+    /// <param name="encounterType">Encounter type</param>
+    /// <param name="isShinyLocked">Whether shiny form is locked</param>
+    /// <param name="isGift">Whether this is a gift Pokémon</param>
+    /// <param name="fixedBall">Fixed Poké Ball type</param>
+    /// <param name="version">Game version</param>
+    /// <param name="isUnderground">Whether this is an underground encounter</param>
+    /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
     private static void AddEncounterInfoWithEvolutions(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, ushort speciesIndex, byte form, string locationName, ushort locationId, byte minLevel, byte maxLevel,
-        string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string version, bool isUnderground)
+        string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string version, bool isUnderground,
+        byte flawlessIVCount = 0)
     {
         var pt = PersonalTable.BDSP;
         var personalInfo = pt.GetFormEntry(speciesIndex, form);
@@ -195,7 +267,7 @@ public static class EncounterLocationsBDSP
             speciesIndex, form, locationName, locationId,
             minLevel, maxLevel, minLevel, encounterType,
             isShinyLocked, isGift, fixedBall,
-            version, isUnderground);
+            version, isUnderground, flawlessIVCount);
 
         var processedForms = new HashSet<(ushort Species, byte Form)> { (speciesIndex, form) };
 
@@ -204,13 +276,36 @@ public static class EncounterLocationsBDSP
             speciesIndex, form, locationName, locationId,
             maxLevel, maxLevel, minLevel, encounterType,
             isShinyLocked, isGift, fixedBall,
-            version, isUnderground, pt, processedForms);
+            version, isUnderground, flawlessIVCount, pt, processedForms);
     }
 
+    /// <summary>
+    /// Processes the evolution line for a Pokémon.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
+    /// <param name="baseSpecies">Base species index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="baseLevel">Base level</param>
+    /// <param name="maxLevel">Maximum level</param>
+    /// <param name="metLevel">Met level</param>
+    /// <param name="encounterType">Encounter type</param>
+    /// <param name="isShinyLocked">Whether shiny form is locked</param>
+    /// <param name="isGift">Whether this is a gift Pokémon</param>
+    /// <param name="fixedBall">Fixed Poké Ball type</param>
+    /// <param name="version">Game version</param>
+    /// <param name="isUnderground">Whether this is an underground encounter</param>
+    /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
+    /// <param name="pt">Personal table for the game</param>
+    /// <param name="processedForms">Set of already processed species-form combinations</param>
     private static void ProcessEvolutionLine(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, ushort baseSpecies, byte form, string locationName, ushort locationId,
         byte baseLevel, byte maxLevel, byte metLevel, string encounterType, bool isShinyLocked, bool isGift, string fixedBall,
-        string version, bool isUnderground, PersonalTable8BDSP pt, HashSet<(ushort Species, byte Form)> processedForms)
+        string version, bool isUnderground, byte flawlessIVCount, PersonalTable8BDSP pt,
+        HashSet<(ushort Species, byte Form)> processedForms)
     {
         if (pt.GetFormEntry(baseSpecies, form)?.IsPresentInGame != true)
         {
@@ -241,17 +336,25 @@ public static class EncounterLocationsBDSP
                 evoSpecies, evoForm, locationName, locationId,
                 (byte)minLevel, maxLevel, metLevel, $"{encounterType} (Evolved)",
                 isShinyLocked, isGift, fixedBall,
-                version, isUnderground);
+                version, isUnderground, flawlessIVCount);
 
             ProcessEvolutionLine(
                 encounterData, gameStrings, errorLogger,
                 evoSpecies, evoForm, locationName, locationId,
                 (byte)minLevel, maxLevel, metLevel, encounterType,
                 isShinyLocked, isGift, fixedBall,
-                version, isUnderground, pt, processedForms);
+                version, isUnderground, flawlessIVCount, pt, processedForms);
         }
     }
 
+    /// <summary>
+    /// Gets immediate evolutions for a species-form combination.
+    /// </summary>
+    /// <param name="species">Species index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="pt">Personal table for the game</param>
+    /// <param name="processedForms">Set of already processed species-form combinations</param>
+    /// <returns>List of species-form combinations for immediate evolutions</returns>
     private static List<(ushort Species, byte Form)> GetImmediateEvolutions(
         ushort species,
         byte form,
@@ -285,6 +388,14 @@ public static class EncounterLocationsBDSP
         return results;
     }
 
+    /// <summary>
+    /// Gets the minimum level required for evolution.
+    /// </summary>
+    /// <param name="baseSpecies">Base species index</param>
+    /// <param name="baseForm">Base form number</param>
+    /// <param name="evolvedSpecies">Evolved species index</param>
+    /// <param name="evolvedForm">Evolved form number</param>
+    /// <returns>Minimum level required for evolution</returns>
     private static int GetMinEvolutionLevel(ushort baseSpecies, byte baseForm, ushort evolvedSpecies, byte evolvedForm)
     {
         var tree = EvolutionTree.GetEvolutionTree(EntityContext.Gen8b);
@@ -317,6 +428,11 @@ public static class EncounterLocationsBDSP
         return minLevel;
     }
 
+    /// <summary>
+    /// Gets the evolution level from an evolution method.
+    /// </summary>
+    /// <param name="evo">Evolution method</param>
+    /// <returns>Level requirement for the evolution</returns>
     private static int GetEvolutionLevel(EvolutionMethod evo)
     {
         if (evo.Level > 0)
@@ -326,9 +442,30 @@ public static class EncounterLocationsBDSP
         return 0;
     }
 
+    /// <summary>
+    /// Adds a single encounter info to the encounter data.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
+    /// <param name="speciesIndex">Species index</param>
+    /// <param name="form">Form number</param>
+    /// <param name="locationName">Location name</param>
+    /// <param name="locationId">Location ID</param>
+    /// <param name="minLevel">Minimum level</param>
+    /// <param name="maxLevel">Maximum level</param>
+    /// <param name="metLevel">Met level</param>
+    /// <param name="encounterType">Encounter type</param>
+    /// <param name="isShinyLocked">Whether shiny form is locked</param>
+    /// <param name="isGift">Whether this is a gift Pokémon</param>
+    /// <param name="fixedBall">Fixed Poké Ball type</param>
+    /// <param name="version">Game version</param>
+    /// <param name="isUnderground">Whether this is an underground encounter</param>
+    /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
     private static void AddSingleEncounterInfo(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, ushort speciesIndex, byte form, string locationName, ushort locationId, byte minLevel, byte maxLevel,
-        byte metLevel, string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string version, bool isUnderground)
+        byte metLevel, string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string version, bool isUnderground,
+        byte flawlessIVCount = 0)
     {
         string dexNumber = form > 0 ? $"{speciesIndex}-{form}" : speciesIndex.ToString();
 
@@ -372,9 +509,16 @@ public static class EncounterLocationsBDSP
             string newVersion = version ?? string.Empty;
             existingEncounter.Version = CombineVersions(existingVersion, newVersion);
 
+            // Update FlawlessIVCount, taking the highest value
+            if (flawlessIVCount > existingEncounter.FlawlessIVCount)
+            {
+                existingEncounter.FlawlessIVCount = flawlessIVCount;
+            }
+
             errorLogger.WriteLine($"[{DateTime.Now}] Updated existing encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {existingEncounter.MinLevel}-{existingEncounter.MaxLevel}, " +
-                $"Met Level: {existingEncounter.MetLevel}, Type: {encounterType}, Version: {existingEncounter.Version}, Gender: {genderRatio}");
+                $"Met Level: {existingEncounter.MetLevel}, Type: {encounterType}, Version: {existingEncounter.Version}, Gender: {genderRatio}" +
+                (flawlessIVCount > 0 ? $", Perfect IVs: {flawlessIVCount}" : ""));
         }
         else
         {
@@ -394,15 +538,23 @@ public static class EncounterLocationsBDSP
                 IsGift = isGift,
                 FixedBall = fixedBall,
                 Version = version,
-                Gender = genderRatio
+                Gender = genderRatio,
+                FlawlessIVCount = flawlessIVCount
             });
 
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {minLevel}-{maxLevel}, " +
-                $"Met Level: {metLevel}, Type: {encounterType}, Version: {version}, Gender: {genderRatio}");
+                $"Met Level: {metLevel}, Type: {encounterType}, Version: {version}, Gender: {genderRatio}" +
+                (flawlessIVCount > 0 ? $", Perfect IVs: {flawlessIVCount}" : ""));
         }
     }
 
+    /// <summary>
+    /// Combines version strings.
+    /// </summary>
+    /// <param name="version1">First version string</param>
+    /// <param name="version2">Second version string</param>
+    /// <returns>Combined version string</returns>
     private static string CombineVersions(string version1, string version2)
     {
         if (version1 == "Both" || version2 == "Both")
@@ -424,6 +576,11 @@ public static class EncounterLocationsBDSP
         return version1;
     }
 
+    /// <summary>
+    /// Determines gender ratio string based on personal info.
+    /// </summary>
+    /// <param name="personalInfo">Personal info of the Pokemon</param>
+    /// <returns>Gender ratio string</returns>
     private static string DetermineGenderRatio(IPersonalInfo personalInfo) => personalInfo switch
     {
         { Genderless: true } => "Genderless",
@@ -435,22 +592,89 @@ public static class EncounterLocationsBDSP
         _ => "Male, Female"
     };
 
+    /// <summary>
+    /// Information about a Pokémon encounter.
+    /// </summary>
     private sealed class EncounterInfo
     {
+        /// <summary>
+        /// Name of the Pokémon species.
+        /// </summary>
         public required string SpeciesName { get; set; }
+
+        /// <summary>
+        /// Index of the Pokémon species.
+        /// </summary>
         public required ushort SpeciesIndex { get; set; }
+
+        /// <summary>
+        /// Form number of the Pokémon.
+        /// </summary>
         public required byte Form { get; set; }
+
+        /// <summary>
+        /// Name of the encounter location.
+        /// </summary>
         public required string LocationName { get; set; }
+
+        /// <summary>
+        /// ID of the encounter location.
+        /// </summary>
         public required ushort LocationId { get; set; }
+
+        /// <summary>
+        /// Minimum level of the Pokémon.
+        /// </summary>
         public required byte MinLevel { get; set; }
+
+        /// <summary>
+        /// Maximum level of the Pokémon.
+        /// </summary>
         public required byte MaxLevel { get; set; }
+
+        /// <summary>
+        /// Level at which the Pokémon was met.
+        /// </summary>
         public required byte MetLevel { get; set; }
+
+        /// <summary>
+        /// Type of encounter.
+        /// </summary>
         public required string EncounterType { get; set; }
+
+        /// <summary>
+        /// Whether the encounter is in the Grand Underground.
+        /// </summary>
         public required bool IsUnderground { get; set; }
+
+        /// <summary>
+        /// Whether the Pokémon is shiny-locked.
+        /// </summary>
         public required bool IsShinyLocked { get; set; }
+
+        /// <summary>
+        /// Whether the Pokémon is a gift.
+        /// </summary>
         public required bool IsGift { get; set; }
+
+        /// <summary>
+        /// Fixed Poké Ball type.
+        /// </summary>
         public required string FixedBall { get; set; }
+
+        /// <summary>
+        /// Game version.
+        /// </summary>
         public required string Version { get; set; }
+
+        /// <summary>
+        /// Gender ratio of the Pokémon.
+        /// </summary>
         public required string Gender { get; set; }
+
+        /// <summary>
+        /// Number of guaranteed perfect IVs.
+        /// </summary>
+        public byte FlawlessIVCount { get; set; }
     }
 }
