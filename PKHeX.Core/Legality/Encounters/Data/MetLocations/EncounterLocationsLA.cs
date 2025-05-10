@@ -473,6 +473,24 @@ public static class EncounterLocationsLA
         };
     }
 
+    // Legends Arceus Ribbon and Mark definitions
+    private static readonly string[] LAValidRibbons = ["Hisui"];
+
+    // Previous generation ribbons that can be present
+    private static readonly string[] PreviousGenRibbons =
+    [
+        "ChampionKalos", "ChampionG3", "ChampionSinnoh", "BestFriends", "Training",
+        "BattlerSkillful", "BattlerExpert", "Effort", "Alert", "Shock", "Downcast",
+        "Careless", "Relax", "Snooze", "Smile", "Gorgeous", "Royal", "GorgeousRoyal",
+        "Artist", "Footprint", "Record", "Legend", "Country", "National", "Earth",
+        "World", "Classic", "Premier", "Event", "Birthday", "Special", "Souvenir",
+        "Wishing", "ChampionBattle", "ChampionRegional", "ChampionNational",
+        "ChampionWorld", "ChampionG6Hoenn", "ContestStar", "MasterCoolness",
+        "MasterBeauty", "MasterCuteness", "MasterCleverness", "MasterToughness",
+        "ChampionAlola", "BattleRoyale", "BattleTreeGreat", "BattleTreeMaster",
+        "ChampionGalar", "TowerMaster", "MasterRank"
+    ];
+
     /// <summary>
     /// Adds a single encounter to the encounter data dictionary.
     /// </summary>
@@ -601,12 +619,47 @@ public static class EncounterLocationsLA
                     break;
             }
 
+            // Set marks and ribbons for this encounter
+            SetEncounterMarksAndRibbons(info, errorLogger);
+
             encounterList.Add(info);
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {info.SpeciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {info.MinLevel}-{info.MaxLevel}, " +
                 $"Met Level: {info.MetLevel}, Type: {encounterType}, Gender: {info.Gender}, IsShinyLocked: {info.IsShinyLocked}, " +
-                $"Form: {info.Form}, FlawlessIVCount: {info.FlawlessIVCount}");
+                $"Form: {info.Form}, FlawlessIVCount: {info.FlawlessIVCount}, IsAlpha: {info.IsAlpha}, " +
+                $"Required Marks: {string.Join(", ", info.RequiredMarks)}, " +
+                $"Possible Marks: {string.Join(", ", info.PossibleMarks)}");
         }
+    }
+
+    /// <summary>
+    /// Sets marks and ribbons for a specific encounter.
+    /// </summary>
+    /// <param name="encounter">The encounter to set marks and ribbons for</param>
+    /// <param name="errorLogger">Logger for recording processing information</param>
+    private static void SetEncounterMarksAndRibbons(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var requiredMarks = new List<string>();
+        var possibleMarks = new List<string>();
+        var validRibbons = new List<string>();
+
+        // Add Alpha mark for Alpha encounters
+        if (encounter.IsAlpha)
+        {
+            requiredMarks.Add("MarkAlpha");
+        }
+
+        // Add valid ribbons for LA
+        validRibbons.AddRange(LAValidRibbons);
+        validRibbons.AddRange(PreviousGenRibbons);
+
+        encounter.RequiredMarks = [.. requiredMarks];
+        encounter.PossibleMarks = [.. possibleMarks.Except(requiredMarks).ToArray()];
+        encounter.ValidRibbons = [.. validRibbons];
+
+        errorLogger.WriteLine($"[{DateTime.Now}] Mark/Ribbon analysis for {encounter.SpeciesName}: " +
+            $"Required Marks: {string.Join(", ", requiredMarks)}, " +
+            $"Possible Marks: {string.Join(", ", possibleMarks)}");
     }
 
     /// <summary>
@@ -709,5 +762,20 @@ public static class EncounterLocationsLA
         /// Whether the encounter has the fateful encounter flag.
         /// </summary>
         public required bool FatefulEncounter { get; set; }
+
+        /// <summary>
+        /// Required Marks that an encounter must have.
+        /// </summary>
+        public string[] RequiredMarks { get; set; } = [];
+
+        /// <summary>
+        /// Possible Marks that an encounter can have, but are not guaranteed.
+        /// </summary>
+        public string[] PossibleMarks { get; set; } = [];
+
+        /// <summary>
+        /// Valid Ribbons that an encounter can have.
+        /// </summary>
+        public string[] ValidRibbons { get; set; } = [];
     }
 }

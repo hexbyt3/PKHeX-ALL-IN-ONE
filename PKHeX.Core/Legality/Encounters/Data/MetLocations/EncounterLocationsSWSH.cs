@@ -74,13 +74,19 @@ public static class EncounterLocationsSWSH
             var locationName = gameStrings.GetLocationName(false, (ushort)area.Location, 8, 8, GameVersion.SWSH)
                 ?? $"Unknown Location {area.Location}";
 
+            // Get weather for this location from static method
+            var weather = EncounterArea8.GetWeather(area.Location);
+
             foreach (var slot in area.Slots)
             {
                 bool canGigantamax = Gigantamax.CanToggle(slot.Species, slot.Form);
 
+                // Consider slot-specific weather; combine base location weather with slot's specific weather
+                var slotWeather = slot.Weather & weather;
+
                 AddEncounterInfoWithEvolutions(encounterData, gameStrings, errorLogger, slot.Species, slot.Form,
                     locationName, area.Location, slot.LevelMin, slot.LevelMax, $"Wild {slotType}",
-                    false, false, string.Empty, "Both", canGigantamax, 0, string.Empty);
+                    false, false, string.Empty, "Both", canGigantamax, 0, string.Empty, slotWeather);
             }
         }
     }
@@ -100,6 +106,10 @@ public static class EncounterLocationsSWSH
         errorLogger.WriteLine($"[{DateTime.Now}] Processing egg met locations with location ID: {eggMetLocationId} ({locationName})");
 
         var pt = PersonalTable.SWSH;
+
+        // Eggs don't have weather since they're not encountered in the wild
+        // They're explicitly set to None for clarity
+        var weather = AreaWeather8.None;
 
         for (ushort species = 1; species < pt.MaxSpeciesID; species++)
         {
@@ -140,7 +150,8 @@ public static class EncounterLocationsSWSH
                     "Both",
                     canGigantamax,
                     0,
-                    string.Empty
+                    string.Empty,
+                    weather
                 );
             }
         }
@@ -175,11 +186,16 @@ public static class EncounterLocationsSWSH
                 setIVs = FormatIVs(encounter.IVs);
             }
 
+            // Get location's base weather if the encounter doesn't specify weather
+            var weather = encounter.Weather != AreaWeather8.None
+                ? encounter.Weather
+                : EncounterArea8.GetWeather((byte)encounter.Location);
+
             AddEncounterInfoWithEvolutions(
                 encounterData, gameStrings, errorLogger, encounter.Species, encounter.Form,
                 locationName, encounter.Location, encounter.Level, encounter.Level, "Static",
                 encounter.Shiny == Shiny.Never, encounter.Gift, fixedBall, versionName, canGigantamax,
-                flawlessIVCount, setIVs);
+                flawlessIVCount, setIVs, weather);
         }
     }
 
@@ -219,6 +235,10 @@ public static class EncounterLocationsSWSH
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int locationId, string locationName)
     {
+        // Max Raid encounters don't depend on weather
+        // But we'll use the location's weather for reference in case needed
+        var weather = EncounterArea8.GetWeather((byte)locationId);
+
         foreach (var encounter in encounters)
         {
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
@@ -241,7 +261,8 @@ public static class EncounterLocationsSWSH
                 versionName,
                 canGigantamax,
                 flawlessIVCount,
-                string.Empty
+                string.Empty,
+                weather
             );
         }
     }
@@ -260,6 +281,10 @@ public static class EncounterLocationsSWSH
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int locationId, string locationName)
     {
+        // Distribution raids don't depend on weather
+        // But we'll use the location's weather for reference in case needed  
+        var weather = EncounterArea8.GetWeather((byte)locationId);
+
         foreach (var encounter in encounters)
         {
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
@@ -282,7 +307,8 @@ public static class EncounterLocationsSWSH
                 versionName,
                 canGigantamax,
                 flawlessIVCount,
-                string.Empty
+                string.Empty,
+                weather
             );
         }
     }
@@ -300,6 +326,10 @@ public static class EncounterLocationsSWSH
         Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, int locationId, string locationName)
     {
+        // Crystal raids don't depend on weather
+        // But we'll use the location's weather for reference in case needed
+        var weather = EncounterArea8.GetWeather((byte)locationId);
+
         foreach (var encounter in encounters)
         {
             string versionName = encounter.Version switch
@@ -329,7 +359,8 @@ public static class EncounterLocationsSWSH
                 versionName,
                 canGigantamax,
                 flawlessIVCount,
-                string.Empty
+                string.Empty,
+                weather
             );
         }
     }
@@ -346,6 +377,9 @@ public static class EncounterLocationsSWSH
         var locationName = gameStrings.GetLocationName(false, MaxLair, 8, 8, GameVersion.SWSH)
             ?? $"Unknown Location {MaxLair}";
 
+        // Get weather for Max Lair location
+        var weather = EncounterArea8.GetWeather((byte)MaxLair);
+
         foreach (var encounter in Encounters8Nest.DynAdv_SWSH)
         {
             bool canGigantamax = Gigantamax.CanToggle(encounter.Species, encounter.Form) || encounter.CanGigantamax;
@@ -355,7 +389,7 @@ public static class EncounterLocationsSWSH
                 encounterData, gameStrings, errorLogger, encounter.Species, encounter.Form,
                 locationName, MaxLair, encounter.Level, encounter.Level, "Max Lair",
                 encounter.Shiny == Shiny.Never, false, string.Empty, "Both", canGigantamax,
-                flawlessIVCount, string.Empty);
+                flawlessIVCount, string.Empty, weather);
         }
     }
 
@@ -379,6 +413,7 @@ public static class EncounterLocationsSWSH
     /// <param name="canGigantamax">Whether the Pokémon can Gigantamax</param>
     /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
     /// <param name="setIVs">Fixed IVs if specified</param>
+    /// <param name="weather">Weather conditions for the encounter</param>
     private static void AddEncounterInfoWithEvolutions(
         Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings,
@@ -396,7 +431,8 @@ public static class EncounterLocationsSWSH
         string encounterVersion = "Both",
         bool canGigantamax = false,
         int flawlessIVCount = 0,
-        string setIVs = "")
+        string setIVs = "",
+        AreaWeather8 weather = AreaWeather8.None)
     {
         var pt = PersonalTable.SWSH;
         var personalInfo = pt.GetFormEntry(speciesIndex, form);
@@ -408,13 +444,13 @@ public static class EncounterLocationsSWSH
 
         AddSingleEncounterInfo(encounterData, gameStrings, errorLogger, speciesIndex, form, locationName, locationId,
             minLevel, maxLevel, minLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion,
-            canGigantamax, flawlessIVCount, setIVs);
+            canGigantamax, flawlessIVCount, setIVs, weather);
 
         var processedForms = new HashSet<(ushort Species, byte Form)> { (speciesIndex, form) };
 
         ProcessEvolutionLine(encounterData, gameStrings, pt, errorLogger, speciesIndex, form, locationName, locationId,
             minLevel, maxLevel, minLevel, encounterType, isShinyLocked, isGift, fixedBall, encounterVersion,
-            canGigantamax, flawlessIVCount, setIVs, processedForms);
+            canGigantamax, flawlessIVCount, setIVs, processedForms, weather);
     }
 
     /// <summary>
@@ -440,6 +476,7 @@ public static class EncounterLocationsSWSH
     /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
     /// <param name="setIVs">Fixed IVs if specified</param>
     /// <param name="processedForms">Set of already processed species/form combinations</param>
+    /// <param name="weather">Weather conditions for the encounter</param>
     private static void ProcessEvolutionLine(
         Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings,
@@ -460,7 +497,8 @@ public static class EncounterLocationsSWSH
         bool baseCanGigantamax,
         int flawlessIVCount,
         string setIVs,
-        HashSet<(ushort Species, byte Form)> processedForms)
+        HashSet<(ushort Species, byte Form)> processedForms,
+        AreaWeather8 weather)
     {
         var nextEvolutions = GetImmediateEvolutions(species, form, pt, processedForms);
 
@@ -483,12 +521,12 @@ public static class EncounterLocationsSWSH
             AddSingleEncounterInfo(
                 encounterData, gameStrings, errorLogger, evoSpecies, evoForm, locationName, locationId,
                 minLevel, Math.Max(minLevel, maxLevel), metLevel, $"{encounterType} (Evolved)",
-                isShinyLocked, isGift, fixedBall, encounterVersion, evoCanGigantamax, flawlessIVCount, setIVs);
+                isShinyLocked, isGift, fixedBall, encounterVersion, evoCanGigantamax, flawlessIVCount, setIVs, weather);
 
             ProcessEvolutionLine(
                 encounterData, gameStrings, pt, errorLogger, evoSpecies, evoForm, locationName, locationId,
                 minLevel, Math.Max(minLevel, maxLevel), metLevel, encounterType, isShinyLocked, isGift, fixedBall,
-                encounterVersion, evoCanGigantamax, flawlessIVCount, setIVs, processedForms);
+                encounterVersion, evoCanGigantamax, flawlessIVCount, setIVs, processedForms, weather);
         }
     }
 
@@ -583,6 +621,40 @@ public static class EncounterLocationsSWSH
         return 0;
     }
 
+    // SWSH Gen8 Ribbons
+    private static readonly string[] Gen8Ribbons = ["ChampionGalar", "TowerMaster", "MasterRank"];
+    private static readonly string[] PreviousGenRibbons =
+    [
+        "ChampionKalos", "ChampionG3", "ChampionSinnoh", "BestFriends", "Training",
+        "BattlerSkillful", "BattlerExpert", "Effort", "Alert", "Shock", "Downcast",
+        "Careless", "Relax", "Snooze", "Smile", "Gorgeous", "Royal", "GorgeousRoyal",
+        "Artist", "Footprint", "Record", "Legend", "Country", "National", "Earth",
+        "World", "Classic", "Premier", "Event", "Birthday", "Special", "Souvenir",
+        "Wishing", "ChampionBattle", "ChampionRegional", "ChampionNational",
+        "ChampionWorld", "ChampionG6Hoenn", "ContestStar", "MasterCoolness",
+        "MasterBeauty", "MasterCuteness", "MasterCleverness", "MasterToughness",
+        "ChampionAlola", "BattleRoyale", "BattleTreeGreat", "BattleTreeMaster"
+    ];
+
+    // Gen8 mark names (time-based)
+    private static readonly string[] TimeBasedMarks = ["MarkLunchtime", "MarkSleepyTime", "MarkDusk", "MarkDawn"];
+
+    // Gen8 mark names (weather-based)
+    private static readonly string[] WeatherBasedMarks = ["MarkCloudy", "MarkRainy", "MarkStormy", "MarkSnowy",
+        "MarkBlizzard", "MarkDry", "MarkSandstorm", "MarkMisty"];
+
+    // Gen8 mark names (special condition)
+    private static readonly string[] SpecialConditionMarks = ["MarkFishing", "MarkCurry", "MarkUncommon", "MarkRare", "MarkDestiny"];
+
+    // Gen8 mark names (personality-based)
+    private static readonly string[] PersonalityMarks = [
+        "MarkRowdy", "MarkAbsentMinded", "MarkJittery", "MarkExcited", "MarkCharismatic", "MarkCalmness",
+        "MarkIntense", "MarkZonedOut", "MarkJoyful", "MarkAngry", "MarkSmiley", "MarkTeary",
+        "MarkUpbeat", "MarkPeeved", "MarkIntellectual", "MarkFerocious", "MarkCrafty", "MarkScowling",
+        "MarkKindly", "MarkFlustered", "MarkPumpedUp", "MarkZeroEnergy", "MarkPrideful", "MarkUnsure",
+        "MarkHumble", "MarkThorny", "MarkVigor", "MarkSlump"
+    ];
+
     /// <summary>
     /// Adds a single encounter info entry to the encounter data dictionary.
     /// </summary>
@@ -604,6 +676,7 @@ public static class EncounterLocationsSWSH
     /// <param name="canGigantamax">Whether the Pokémon can Gigantamax</param>
     /// <param name="flawlessIVCount">Number of guaranteed perfect IVs</param>
     /// <param name="setIVs">Fixed IVs if specified</param>
+    /// <param name="weather">Weather conditions for the encounter</param>
     private static void AddSingleEncounterInfo(
         Dictionary<string, List<EncounterInfo>> encounterData,
         GameStrings gameStrings,
@@ -622,7 +695,8 @@ public static class EncounterLocationsSWSH
         string encounterVersion,
         bool canGigantamax,
         int flawlessIVCount,
-        string setIVs)
+        string setIVs,
+        AreaWeather8 weather)
     {
         string dexNumber = form > 0 ? $"{speciesIndex}-{form}" : speciesIndex.ToString();
 
@@ -661,6 +735,7 @@ public static class EncounterLocationsSWSH
             existingEncounter.MinLevel = Math.Min(existingEncounter.MinLevel, minLevel);
             existingEncounter.MaxLevel = Math.Max(existingEncounter.MaxLevel, maxLevel);
             existingEncounter.MetLevel = Math.Min(existingEncounter.MetLevel, metLevel);
+            existingEncounter.Weather |= weather; // Combine weather conditions
 
             string existingVersion = existingEncounter.EncounterVersion ?? string.Empty;
             string newVersion = encounterVersion ?? string.Empty;
@@ -690,7 +765,7 @@ public static class EncounterLocationsSWSH
         }
         else
         {
-            encounterList.Add(new EncounterInfo
+            var newEncounter = new EncounterInfo
             {
                 SpeciesName = speciesName,
                 SpeciesIndex = speciesIndex,
@@ -708,15 +783,158 @@ public static class EncounterLocationsSWSH
                 CanGigantamax = canGigantamax,
                 Gender = genderRatio,
                 FlawlessIVCount = flawlessIVCount,
-                SetIVs = setIVs
-            });
+                SetIVs = setIVs,
+                Weather = weather
+            };
+
+            SetEncounterMarksAndRibbons(newEncounter, errorLogger);
+
+            encounterList.Add(newEncounter);
 
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {minLevel}-{maxLevel}, " +
                 $"Met Level: {metLevel}, Type: {encounterType}, Version: {encounterVersion}, " +
                 $"Can Gigantamax: {canGigantamax}, Gender: {genderRatio}, " +
-                $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}");
+                $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}, " +
+                $"Required Marks: {string.Join(", ", newEncounter.RequiredMarks)}, " +
+                $"Possible Marks: {(newEncounter.PossibleMarks.Length > 5 ? string.Join(", ", newEncounter.PossibleMarks.Take(5)) + "..." : string.Join(", ", newEncounter.PossibleMarks))}, " +
+                $"Valid Ribbons: {(newEncounter.ValidRibbons.Length > 5 ? string.Join(", ", newEncounter.ValidRibbons.Take(5)) + "..." : string.Join(", ", newEncounter.ValidRibbons))}");
         }
+    }
+
+    /// <summary>
+    /// Sets the required marks, possible marks and valid ribbons for an encounter.
+    /// </summary>
+    /// <param name="encounter">Encounter info to update</param>
+    /// <param name="errorLogger">Error logger for logging issues</param>
+    private static void SetEncounterMarksAndRibbons(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var requiredMarks = new List<string>();
+        var possibleMarks = new List<string>();
+        var validRibbons = new List<string>();
+
+        // Process possible marks
+        if (CanHaveEncounterMarks(encounter))
+        {
+            // Add possible marks based on encounter conditions
+            if (CanHaveWeatherMarks(encounter))
+            {
+                // Weather-based marks for wild encounters
+                possibleMarks.AddRange(GetPossibleWeatherMarks(encounter.Weather));
+            }
+
+            if (CanHaveTimeMarks(encounter))
+            {
+                // Time-based marks for wild encounters
+                possibleMarks.AddRange(TimeBasedMarks);
+            }
+
+            // Special condition marks
+            if (encounter.EncounterType.Contains("Fishing") || encounter.Weather.HasFlag(AreaWeather8.Fishing))
+            {
+                possibleMarks.Add("MarkFishing");
+            }
+
+            if (encounter.EncounterType.Contains("Curry"))
+            {
+                possibleMarks.Add("MarkCurry");
+            }
+
+            // Destiny mark (birthday encounters)
+            possibleMarks.Add("MarkDestiny");
+
+            // Rarity marks
+            possibleMarks.Add("MarkUncommon");
+            possibleMarks.Add("MarkRare");
+
+            // Personality marks (always applicable for wild encounters)
+            possibleMarks.AddRange(PersonalityMarks);
+        }
+
+        // Add all valid ribbons for Gen8
+        validRibbons.AddRange(Gen8Ribbons);
+        validRibbons.AddRange(PreviousGenRibbons);
+
+        encounter.RequiredMarks = [.. requiredMarks];
+        encounter.PossibleMarks = [.. possibleMarks.Except(requiredMarks).ToArray()];
+        encounter.ValidRibbons = [.. validRibbons];
+
+        errorLogger.WriteLine($"[{DateTime.Now}] Mark analysis - Required: {string.Join(", ", requiredMarks)}, " +
+            $"Possible: {(possibleMarks.Count > 5 ? string.Join(", ", possibleMarks.Take(5)) + "..." : string.Join(", ", possibleMarks))}");
+    }
+
+    /// <summary>
+    /// Gets possible weather-based marks based on the weather conditions.
+    /// </summary>
+    /// <param name="weather">Weather conditions</param>
+    /// <returns>List of possible weather marks</returns>
+    private static List<string> GetPossibleWeatherMarks(AreaWeather8 weather)
+    {
+        var weatherMarks = new List<string>();
+
+        if (weather.HasFlag(AreaWeather8.Overcast))
+            weatherMarks.Add("MarkCloudy");
+        if (weather.HasFlag(AreaWeather8.Raining))
+            weatherMarks.Add("MarkRainy");
+        if (weather.HasFlag(AreaWeather8.Thunderstorm))
+            weatherMarks.Add("MarkStormy");
+        if (weather.HasFlag(AreaWeather8.Snowing))
+            weatherMarks.Add("MarkSnowy");
+        if (weather.HasFlag(AreaWeather8.Snowstorm))
+            weatherMarks.Add("MarkBlizzard");
+        if (weather.HasFlag(AreaWeather8.Intense_Sun))
+            weatherMarks.Add("MarkDry");
+        if (weather.HasFlag(AreaWeather8.Sandstorm))
+            weatherMarks.Add("MarkSandstorm");
+        if (weather.HasFlag(AreaWeather8.Heavy_Fog))
+            weatherMarks.Add("MarkMisty");
+
+        return weatherMarks;
+    }
+
+    /// <summary>
+    /// Determines if the encounter type can have encounter marks from Gen 8.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have encounter marks</returns>
+    private static bool CanHaveEncounterMarks(EncounterInfo encounter)
+    {
+        // Based on IsEncounterMarkAllowed in MarkRules
+        // Egg, gift, and static encounters typically don't have marks
+        if (encounter.EncounterType is "Egg" or "Gift" or "Static")
+            return false;
+
+        // Raid encounters don't have encounter marks
+        if (encounter.EncounterType.Contains("Raid") || encounter.EncounterType.Contains("Max Lair"))
+            return false;
+
+        // Wild and fishing encounters can have marks
+        return encounter.EncounterType.Contains("Wild") ||
+               encounter.EncounterType.Contains("Fishing") ||
+               encounter.EncounterType.Contains("Curry");
+    }
+
+    /// <summary>
+    /// Determines if the encounter can have weather-based marks.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have weather-based marks</returns>
+    private static bool CanHaveWeatherMarks(EncounterInfo encounter)
+    {
+        // Weather marks apply to wild encounters
+        return encounter.EncounterType.Contains("Wild") ||
+               encounter.Weather != AreaWeather8.None;
+    }
+
+    /// <summary>
+    /// Determines if the encounter can have time-based marks.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have time-based marks</returns>
+    private static bool CanHaveTimeMarks(EncounterInfo encounter)
+    {
+        // Time marks apply to wild encounters
+        return encounter.EncounterType.Contains("Wild");
     }
 
     /// <summary>
@@ -879,5 +1097,25 @@ public static class EncounterLocationsSWSH
         /// Gets or sets the fixed IV values if specified.
         /// </summary>
         public string SetIVs { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the weather conditions for the encounter.
+        /// </summary>
+        public AreaWeather8 Weather { get; set; } = AreaWeather8.None;
+
+        /// <summary>
+        /// Required Marks that an encounter must have.
+        /// </summary>
+        public string[] RequiredMarks { get; set; } = [];
+
+        /// <summary>
+        /// Possible Marks that an encounter can have, but are not guaranteed.
+        /// </summary>
+        public string[] PossibleMarks { get; set; } = [];
+
+        /// <summary>
+        /// Valid Ribbons that an encounter can have.
+        /// </summary>
+        public string[] ValidRibbons { get; set; } = [];
     }
 }

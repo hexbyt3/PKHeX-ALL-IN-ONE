@@ -184,8 +184,11 @@ public static class EncounterLocationsSV
                 setIVs = string.Join(", ", ivParts);
             }
 
+            // Use "Titan" encounter type for encounters with IsTitan = true
+            string encounterType = encounter.IsTitan ? "Titan" : "Static";
+
             AddEncounterInfoWithEvolutions(encounterData, gameStrings, pt, errorLogger, encounter.Species, encounter.Form,
-                locationName, locationId, encounter.Level, encounter.Level, "Static",
+                locationName, locationId, encounter.Level, encounter.Level, encounterType,
                 encounter.Shiny == Shiny.Never, false, fixedBall, versionName, SizeType9.RANDOM, 0,
                 flawlessIVCount, setIVs);
         }
@@ -467,6 +470,194 @@ public static class EncounterLocationsSV
         return version1;
     }
 
+    private static readonly string[] Gen9Ribbons = ["ChampionPaldea", "OnceInALifetime", "Partner"];
+    private static readonly string[] PreviousGenRibbons =
+    [
+        "Alert", "BeautyMaster", "BestFriends", "Careless",
+    "ClevernessMaster", "ContestStar", "CoolnessMaster", "CutenessMaster",
+    "Downcast", "Effort", "GalarChampion", "Gorgeous",
+    "GorgeousRoyal", "Hisui", "MasterRank",
+    "Relax", "Royal", "Shock", "SinnohChampion",
+    "Smile", "Snooze", "ToughnessMaster", "TowerMaster",
+    "TwinklingStar"
+    ];
+
+    // Gen 8 mark names (time-based)
+    private static readonly string[] TimeBasedMarks = ["MarkLunchtime", "MarkSleepyTime", "MarkDusk", "MarkDawn"];
+
+    // Gen 8 mark names (weather-based)
+    private static readonly string[] WeatherBasedMarks = ["MarkCloudy", "MarkRainy", "MarkStormy", "MarkSnowy",
+        "MarkBlizzard", "MarkDry", "MarkSandstorm", "MarkMisty"];
+
+    // Gen 8 mark names (personality-based)
+    private static readonly string[] PersonalityMarks = [
+        "MarkRowdy", "MarkAbsentMinded", "MarkJittery", "MarkExcited", "MarkCharismatic", "MarkCalmness",
+        "MarkIntense", "MarkZonedOut", "MarkJoyful", "MarkAngry", "MarkSmiley", "MarkTeary",
+        "MarkUpbeat", "MarkPeeved", "MarkIntellectual", "MarkFerocious", "MarkCrafty", "MarkScowling",
+        "MarkKindly", "MarkFlustered", "MarkPumpedUp", "MarkZeroEnergy", "MarkPrideful", "MarkUnsure",
+        "MarkHumble", "MarkThorny", "MarkVigor", "MarkSlump"
+    ];
+
+    /// <summary>
+    /// Adds guaranteed marks, possible marks, and valid ribbons to the encounter
+    /// </summary>
+    /// <param name="encounter">The encounter info to update with mark and ribbon data</param>
+    /// <param name="errorLogger">Logger for recording processing information</param>
+    private static void SetEncounterMarksAndRibbons(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var requiredMarks = new List<string>();
+        var possibleMarks = new List<string>();
+        var validRibbons = new List<string>();
+
+        // Process required marks based on encounter type
+        if (encounter.EncounterType.Contains("7-Star Raid"))
+        {
+            requiredMarks.Add("MarkMightiest");
+        }
+        else if (encounter.EncounterType.Contains("Titan"))
+        {
+            requiredMarks.Add("MarkTitan");
+        }
+
+        // Process guaranteed size-based marks
+        if (encounter.SizeType == SizeType9.VALUE)
+        {
+            if (encounter.SizeValue == byte.MaxValue)
+                requiredMarks.Add("MarkJumbo");
+            else if (encounter.SizeValue == byte.MinValue)
+                requiredMarks.Add("MarkMini");
+        }
+
+        // Process possible marks
+        if (CanHaveEncounterMarks(encounter))
+        {
+            // Add possible marks based on encounter conditions
+            if (CanHaveWeatherMarks(encounter))
+            {
+                // Weather-based marks for wild encounters
+                possibleMarks.AddRange(WeatherBasedMarks);
+            }
+
+            if (CanHaveTimeMarks(encounter))
+            {
+                // Time-based marks for wild encounters
+                possibleMarks.AddRange(TimeBasedMarks);
+            }
+
+            // Special condition marks
+            if (encounter.EncounterType.Contains("Fishing"))
+            {
+                possibleMarks.Add("MarkFishing");
+            }
+
+            if (encounter.EncounterType.Contains("Curry"))
+            {
+                possibleMarks.Add("MarkCurry");
+            }
+
+            // Destiny mark (birthday encounters)
+            possibleMarks.Add("MarkDestiny");
+
+            // Rarity marks
+            possibleMarks.Add("MarkUncommon");
+            possibleMarks.Add("MarkRare");
+
+            // Personality marks (always applicable for wild encounters)
+            possibleMarks.AddRange(PersonalityMarks);
+        }
+
+        // Gen 9 specific obtainable marks
+        if (CanHaveGen9Marks(encounter))
+        {
+            if (!requiredMarks.Contains("MarkJumbo") &&
+                !requiredMarks.Contains("MarkMini") &&
+                !encounter.EncounterType.Contains("7-Star Raid"))
+            {
+                possibleMarks.Add("MarkItemfinder");
+            }
+
+            if (!encounter.EncounterType.Contains("7-Star Raid") &&
+                !encounter.EncounterType.Contains("Titan"))
+            {
+                possibleMarks.Add("MarkPartner");
+            }
+
+            possibleMarks.Add("MarkGourmand");
+        }
+
+        // Add all valid ribbons for Gen 9
+        validRibbons.AddRange(Gen9Ribbons);
+        validRibbons.AddRange(PreviousGenRibbons);
+
+        encounter.RequiredMarks = [.. requiredMarks];
+        encounter.PossibleMarks = [.. possibleMarks.Except(requiredMarks).ToArray()];
+        encounter.ValidRibbons = [.. validRibbons];
+
+        errorLogger.WriteLine($"[{DateTime.Now}] Mark analysis - Required: {string.Join(", ", requiredMarks)}, " +
+            $"Possible: {(possibleMarks.Count > 5 ? string.Join(", ", possibleMarks.Take(5)) + "..." : string.Join(", ", possibleMarks))}");
+    }
+
+    /// <summary>
+    /// Determines if the encounter type can have encounter marks from Gen 8/9.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have encounter marks</returns>
+    private static bool CanHaveEncounterMarks(EncounterInfo encounter)
+    {
+        // Based on IsEncounterMarkAllowed in MarkRules
+        // Egg, gift, and static encounters typically don't have marks
+        if (encounter.EncounterType is "Egg" or "Gift" or "Static")
+            return false;
+
+        // Tera raids don't have Gen8 encounter marks
+        if (encounter.EncounterType.Contains("Raid") || encounter.EncounterType.Contains("Distribution"))
+            return false;
+
+        // Wild and outbreak encounters can have marks
+        return encounter.EncounterType.Contains("Wild") ||
+               encounter.EncounterType.Contains("Outbreak") ||
+               encounter.EncounterType.Contains("Fishing") ||
+               encounter.EncounterType.Contains("Curry");
+    }
+
+    /// <summary>
+    /// Determines if the encounter can have weather-based marks.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have weather-based marks</returns>
+    private static bool CanHaveWeatherMarks(EncounterInfo encounter)
+    {
+        // Weather marks apply to wild encounters
+        return encounter.EncounterType.Contains("Wild") ||
+               encounter.EncounterType.Contains("Outbreak");
+    }
+
+    /// <summary>
+    /// Determines if the encounter can have time-based marks.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have time-based marks</returns>
+    private static bool CanHaveTimeMarks(EncounterInfo encounter)
+    {
+        // Time marks apply to wild encounters
+        return encounter.EncounterType.Contains("Wild") ||
+               encounter.EncounterType.Contains("Outbreak");
+    }
+
+    /// <summary>
+    /// Determines if the encounter can have Gen 9 specific marks.
+    /// </summary>
+    /// <param name="encounter">The encounter info to check</param>
+    /// <returns>True if the encounter can have Gen 9 specific marks</returns>
+    private static bool CanHaveGen9Marks(EncounterInfo encounter)
+    {
+        // Most Gen 9 marks are obtainable through activities, not tied to encounter
+        return encounter.EncounterType != "Egg";
+    }
+
+    /// <summary>
+    /// Adds a single encounter to the encounter data.
+    /// </summary>
     /// <summary>
     /// Adds a single encounter to the encounter data.
     /// </summary>
@@ -538,7 +729,7 @@ public static class EncounterLocationsSV
         }
         else
         {
-            encounterList.Add(new EncounterInfo
+            var newEncounter = new EncounterInfo
             {
                 SpeciesName = speciesName,
                 SpeciesIndex = speciesIndex,
@@ -558,12 +749,19 @@ public static class EncounterLocationsSV
                 Gender = genderRatio,
                 FlawlessIVCount = flawlessIVCount,
                 SetIVs = setIVs
-            });
+            };
+
+            SetEncounterMarksAndRibbons(newEncounter, errorLogger);
+
+            encounterList.Add(newEncounter);
 
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {minLevel}-{maxLevel}, " +
                 $"Met Level: {metLevel}, Type: {encounterType}, Version: {encounterVersion}, Gender: {genderRatio}, " +
-                $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}");
+                $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}, " +
+                $"Required Marks: {string.Join(", ", newEncounter.RequiredMarks)}, " +
+                $"Possible Marks: {(newEncounter.PossibleMarks.Length > 5 ? string.Join(", ", newEncounter.PossibleMarks.Take(5)) + "..." : string.Join(", ", newEncounter.PossibleMarks))}, " +
+                $"Valid Ribbons: {(newEncounter.ValidRibbons.Length > 5 ? string.Join(", ", newEncounter.ValidRibbons.Take(5)) + "..." : string.Join(", ", newEncounter.ValidRibbons))}");
         }
     }
 
@@ -675,5 +873,17 @@ public static class EncounterLocationsSV
         /// The number of guaranteed perfect (31) IVs.
         /// </summary>
         public int FlawlessIVCount { get; set; }
+        /// <summary>
+        /// Required Marks that an encounter must have.
+        /// </summary>
+        public string[] RequiredMarks { get; set; } = [];
+                /// <summary>
+        /// Possible Marks that an encounter can have, but are not guaranteed.
+        /// </summary>
+        public string[] PossibleMarks { get; set; } = [];
+        /// <summary>
+        /// Valid Ribbons that an encounter can have.
+        /// </summary>
+        public string[] ValidRibbons { get; set; } = [];
     }
 }

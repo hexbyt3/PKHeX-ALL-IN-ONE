@@ -442,6 +442,46 @@ public static class EncounterLocationsBDSP
         return 0;
     }
 
+    // BDSP Generation 8 ribbons 
+    private static readonly string[] Gen8Ribbons = ["ChampionGalar", "TowerMaster", "MasterRank", "Hisui"];
+
+    // Previous generations ribbons valid in BDSP
+    private static readonly string[] PreviousGenRibbons =
+    [
+        "ChampionKalos", "ChampionG3", "ChampionSinnoh", "BestFriends", "Training",
+        "BattlerSkillful", "BattlerExpert", "Effort", "Alert", "Shock", "Downcast",
+        "Careless", "Relax", "Snooze", "Smile", "Gorgeous", "Royal", "GorgeousRoyal",
+        "Artist", "Footprint", "Record", "Legend", "Country", "National", "Earth",
+        "World", "Classic", "Premier", "Event", "Birthday", "Special", "Souvenir",
+        "Wishing", "ChampionBattle", "ChampionRegional", "ChampionNational",
+        "ChampionWorld", "ChampionG6Hoenn", "ContestStar", "MasterCoolness",
+        "MasterBeauty", "MasterCuteness", "MasterCleverness", "MasterToughness",
+        "ChampionAlola", "BattleRoyale", "BattleTreeGreat", "BattleTreeMaster"
+    ];
+
+    /// <summary>
+    /// Sets the valid ribbons for an encounter in BDSP. 
+    /// Note that BDSP does not have encounter marks like SWSH.
+    /// </summary>
+    /// <param name="encounter">The encounter to set ribbons for</param>
+    /// <param name="errorLogger">Error logger for diagnostic output</param>
+    private static void SetEncounterRibbons(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var validRibbons = new List<string>();
+
+        // Add all valid ribbons for BDSP
+        validRibbons.AddRange(Gen8Ribbons);
+        validRibbons.AddRange(PreviousGenRibbons);
+
+        // BDSP doesn't have encounter marks, so these arrays remain empty
+        encounter.RequiredMarks = [];
+        encounter.PossibleMarks = [];
+        encounter.ValidRibbons = [.. validRibbons];
+
+        errorLogger.WriteLine($"[{DateTime.Now}] Ribbon analysis - " +
+            $"Valid Ribbons: {(validRibbons.Count > 5 ? string.Join(", ", validRibbons.Take(5)) + "..." : string.Join(", ", validRibbons))}");
+    }
+
     /// <summary>
     /// Adds a single encounter info to the encounter data.
     /// </summary>
@@ -522,7 +562,7 @@ public static class EncounterLocationsBDSP
         }
         else
         {
-            encounterList.Add(new EncounterInfo
+            var newEncounter = new EncounterInfo
             {
                 SpeciesName = speciesName,
                 SpeciesIndex = speciesIndex,
@@ -540,12 +580,18 @@ public static class EncounterLocationsBDSP
                 Version = version,
                 Gender = genderRatio,
                 FlawlessIVCount = flawlessIVCount
-            });
+            };
+
+            // Set ribbons and marks for this encounter
+            SetEncounterRibbons(newEncounter, errorLogger);
+
+            encounterList.Add(newEncounter);
 
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {speciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {minLevel}-{maxLevel}, " +
                 $"Met Level: {metLevel}, Type: {encounterType}, Version: {version}, Gender: {genderRatio}" +
-                (flawlessIVCount > 0 ? $", Perfect IVs: {flawlessIVCount}" : ""));
+                (flawlessIVCount > 0 ? $", Perfect IVs: {flawlessIVCount}" : "") +
+                $", Valid Ribbons: {(newEncounter.ValidRibbons.Length > 5 ? string.Join(", ", newEncounter.ValidRibbons.Take(5)) + "..." : string.Join(", ", newEncounter.ValidRibbons))}");
         }
     }
 
@@ -676,5 +722,20 @@ public static class EncounterLocationsBDSP
         /// Number of guaranteed perfect IVs.
         /// </summary>
         public byte FlawlessIVCount { get; set; }
+
+        /// <summary>
+        /// Required Marks that an encounter must have.
+        /// </summary>
+        public string[] RequiredMarks { get; set; } = [];
+
+        /// <summary>
+        /// Possible Marks that an encounter can have, but are not guaranteed.
+        /// </summary>
+        public string[] PossibleMarks { get; set; } = [];
+
+        /// <summary>
+        /// Valid Ribbons that an encounter can have.
+        /// </summary>
+        public string[] ValidRibbons { get; set; } = [];
     }
 }
