@@ -503,7 +503,7 @@ public static class EncounterLocationsLA
     /// <param name="errorLogger">Stream writer for logging errors</param>
     /// <param name="metLevel">Original met level for the encounter</param>
     private static void AddSingleEncounterInfo(ISpeciesForm encounter, ushort locationId, string locationName, string encounterType,
-        Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger, int metLevel)
+       Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings, StreamWriter errorLogger, int metLevel)
     {
         ArgumentNullException.ThrowIfNull(encounter);
         ArgumentNullException.ThrowIfNull(locationName);
@@ -622,14 +622,128 @@ public static class EncounterLocationsLA
             // Set marks and ribbons for this encounter
             SetEncounterMarksAndRibbons(info, errorLogger);
 
+            // Set legal balls for this encounter
+            SetLegalBalls(info, errorLogger);
+
             encounterList.Add(info);
             errorLogger.WriteLine($"[{DateTime.Now}] Processed new encounter: {info.SpeciesName} " +
                 $"(Dex: {dexNumber}) at {locationName} (ID: {locationId}), Levels {info.MinLevel}-{info.MaxLevel}, " +
                 $"Met Level: {info.MetLevel}, Type: {encounterType}, Gender: {info.Gender}, IsShinyLocked: {info.IsShinyLocked}, " +
                 $"Form: {info.Form}, FlawlessIVCount: {info.FlawlessIVCount}, IsAlpha: {info.IsAlpha}, " +
                 $"Required Marks: {string.Join(", ", info.RequiredMarks)}, " +
-                $"Possible Marks: {string.Join(", ", info.PossibleMarks)}");
+                $"Possible Marks: {string.Join(", ", info.PossibleMarks)}, " +
+                $"Legal Balls: {string.Join(", ", info.LegalBalls)}");
         }
+    }
+
+    /// <summary>
+    /// Sets the legal balls for a Legends Arceus encounter.
+    /// </summary>
+    /// <param name="encounter">The encounter to set legal balls for</param>
+    /// <param name="errorLogger">Logger for recording processing information</param>
+    private static void SetLegalBalls(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var legalBalls = new List<int>();
+
+        // Check if there's a fixed ball first (highest priority)
+        if (!string.IsNullOrEmpty(encounter.FixedBall))
+        {
+            if (Enum.TryParse(encounter.FixedBall, out Ball fixedBall))
+            {
+                legalBalls.Add(ConvertBallToImageId(fixedBall));
+                encounter.LegalBalls = [.. legalBalls];
+                errorLogger.WriteLine($"[{DateTime.Now}] Fixed ball: {encounter.FixedBall}");
+                return;
+            }
+        }
+
+        // Get the appropriate ball mask for Legends Arceus encounters
+        // In PLA, encounters use the PLA-specific ball set
+        ulong ballPermitMask = BallUseLegality.GetWildBalls(8, GameVersion.PLA);
+
+        // Convert the bitmask to a list of legal balls
+        for (byte ballId = 1; ballId < 64; ballId++)
+        {
+            if (BallUseLegality.IsBallPermitted(ballPermitMask, ballId))
+            {
+                var ball = (Ball)ballId;
+                legalBalls.Add(ConvertBallToImageId(ball));
+            }
+        }
+
+        // Special case for Noble encounters (legendary/boss Pokémon)
+        // These encounters might have restricted ball usage in lore, but for completeness
+        // we're including all PLA balls as they're technically catchable with any PLA ball
+        if (encounter.EncounterType == "Static" &&
+            (encounter.SpeciesName.Contains("Noble") || IsLegendaryOrMythical(encounter.SpeciesIndex)))
+        {
+            // Keep using the standard PLA balls - already handled above
+        }
+
+        encounter.LegalBalls = [.. legalBalls];
+        errorLogger.WriteLine($"[{DateTime.Now}] Legal balls: {string.Join(", ", legalBalls)}");
+    }
+
+    /// <summary>
+    /// Checks if a species is Legendary or Mythical.
+    /// </summary>
+    /// <param name="species">The species index to check</param>
+    /// <returns>True if the species is Legendary or Mythical</returns>
+    private static bool IsLegendaryOrMythical(int species)
+    {
+        // Legendary and Mythical Pokémon available in PLA
+        return species is 144 or 145 or 146 or 150 or 151 or 243 or 244 or 245 or 249 or 250 or 251 or
+                         377 or 378 or 379 or 480 or 481 or 482 or 483 or 484 or 485 or 486 or 487 or 491 or 493 or
+                         638 or 639 or 640 or 641 or 642 or 645 or 646 or 647 or 649 or 718 or 719 or 720 or 721 or
+                         800 or 801;
+    }
+
+    /// <summary>
+    /// Converts a Ball enum value to the corresponding image ID in the ballImageMap.
+    /// </summary>
+    private static int ConvertBallToImageId(Ball ball)
+    {
+        return ball switch
+        {
+            Ball.Master => 1,
+            Ball.LAPoke => 2,
+            Ball.LAUltra => 3,
+            Ball.Dream => 4,
+            Ball.LAWing => 5,
+            Ball.LAJet => 6,
+            Ball.LALeaden => 7,
+            Ball.LAOrigin => 8, // Origin Ball appears to be 8 in your image map
+            Ball.LAGigaton => 9,
+            Ball.Strange => 10,
+            Ball.Beast => 11,
+            Ball.Ultra => 12,
+            Ball.Great => 13,
+            Ball.Poke => 14,
+            Ball.Safari => 15,
+            Ball.Net => 16,
+            Ball.Dive => 17,
+            Ball.Nest => 18,
+            Ball.Repeat => 19,
+            Ball.Timer => 20,
+            Ball.Luxury => 21,
+            Ball.Premier => 22,
+            Ball.Dusk => 23,
+            Ball.Heal => 24,
+            Ball.Quick => 25,
+            Ball.Cherish => 26,
+            Ball.Fast => 27,
+            Ball.Level => 28,
+            Ball.Lure => 29,
+            Ball.Heavy => 30,
+            Ball.Love => 31,
+            Ball.Friend => 32,
+            Ball.Moon => 33,
+            Ball.Sport => 34,
+            Ball.LAGreat => 36,
+            Ball.LAHeavy => 37,
+            Ball.LAFeather => 38,
+            _ => 14, // Default to Poké Ball for any unmapped balls
+        };
     }
 
     /// <summary>
@@ -777,5 +891,9 @@ public static class EncounterLocationsLA
         /// Valid Ribbons that an encounter can have.
         /// </summary>
         public string[] ValidRibbons { get; set; } = [];
+        /// <summary>
+        /// Legal balls that can be used for this encounter.
+        /// </summary>
+        public int[] LegalBalls { get; set; } = [];
     }
 }

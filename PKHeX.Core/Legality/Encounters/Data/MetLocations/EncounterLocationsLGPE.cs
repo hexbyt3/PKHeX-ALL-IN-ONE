@@ -193,6 +193,9 @@ public static class EncounterLocationsLGPE
             SetIVs = setIVs
         };
 
+        // Set legal balls for this encounter
+        SetLegalBalls(encounterInfo, errorLogger);
+
         bool isDuplicate = encounterData[dexNumber].Exists(e =>
             e.LocationId == locationId &&
             e.EncounterType == encounterType &&
@@ -204,8 +207,89 @@ public static class EncounterLocationsLGPE
         {
             encounterData[dexNumber].Add(encounterInfo);
             errorLogger.WriteLine($"[{DateTime.Now}] Processed encounter: {speciesName} (Dex: {dexNumber}) at {locationName} (ID: {locationId}), " +
-                $"Levels {minLevel}-{maxLevel}, Type: {encounterType}, IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}");
+                $"Levels {minLevel}-{maxLevel}, Type: {encounterType}, IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}, " +
+                $"Legal Balls: {string.Join(", ", encounterInfo.LegalBalls)}");
         }
+    }
+
+    /// <summary>
+    /// Sets the legal balls for an encounter in Let's Go Pikachu/Eevee games.
+    /// </summary>
+    private static void SetLegalBalls(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var legalBalls = new List<int>();
+        GameVersion gameVersion = DetermineGameVersion(encounter.EncounterVersion);
+
+        // Check if there's a fixed ball first
+        if (!string.IsNullOrEmpty(encounter.FixedBall))
+        {
+            if (Enum.TryParse(encounter.FixedBall, out Ball fixedBall))
+            {
+                legalBalls.Add(ConvertBallToImageId(fixedBall));
+                encounter.LegalBalls = [.. legalBalls];
+                errorLogger.WriteLine($"[{DateTime.Now}] Fixed ball: {encounter.FixedBall}");
+                return;
+            }
+        }
+
+        // Different legal balls based on encounter type
+        if (encounter.EncounterType == "Trade")
+        {
+            // Trades typically come in a standard Poké Ball
+            legalBalls.Add(ConvertBallToImageId(Ball.Poke));
+        }
+        else if (encounter.EncounterType == "Static" || encounter.EncounterType == "Wild" ||
+                 encounter.EncounterType.Contains("Evolved"))
+        {
+            // For wild and static encounters in LGPE, use the appropriate wild balls
+            // LGPE only allows Poké Ball, Great Ball, Ultra Ball, and Premier Ball for wild catches
+            ulong wildBallsMask = BallUseLegality.GetWildBalls(7, GameVersion.GG);
+
+            for (byte ballId = 1; ballId < 64; ballId++)
+            {
+                if (BallUseLegality.IsBallPermitted(wildBallsMask, ballId))
+                {
+                    var ball = (Ball)ballId;
+                    legalBalls.Add(ConvertBallToImageId(ball));
+                }
+            }
+        }
+        else
+        {
+            // Default to only Poké Ball for other encounter types
+            legalBalls.Add(ConvertBallToImageId(Ball.Poke));
+        }
+
+        encounter.LegalBalls = [.. legalBalls];
+    }
+
+    /// <summary>
+    /// Determines the game version based on the version string.
+    /// </summary>
+    private static GameVersion DetermineGameVersion(string versionString)
+    {
+        return versionString switch
+        {
+            "Let's Go Pikachu" => GameVersion.GP,
+            "Let's Go Eevee" => GameVersion.GE,
+            _ => GameVersion.GG, // Both
+        };
+    }
+
+    /// <summary>
+    /// Converts a Ball enum value to the corresponding image ID in the ballImageMap.
+    /// </summary>
+    private static int ConvertBallToImageId(Ball ball)
+    {
+        return ball switch
+        {
+            Ball.Master => 1,
+            Ball.Ultra => 12,
+            Ball.Great => 13,
+            Ball.Poke => 14,
+            Ball.Premier => 22,
+            _ => 14, // Default to Poké Ball for any unmapped balls
+        };
     }
 
     /// <summary>
@@ -368,5 +452,9 @@ public static class EncounterLocationsLGPE
         /// String representation of fixed IV values for this encounter.
         /// </summary>
         public string SetIVs { get; set; } = string.Empty;
+        /// <summary>
+        /// Legal balls that can be used for this encounter.
+        /// </summary>
+        public int[] LegalBalls { get; set; } = [];
     }
 }

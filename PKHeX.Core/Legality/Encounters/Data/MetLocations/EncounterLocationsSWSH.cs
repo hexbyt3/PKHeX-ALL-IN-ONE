@@ -788,6 +788,7 @@ public static class EncounterLocationsSWSH
             };
 
             SetEncounterMarksAndRibbons(newEncounter, errorLogger);
+            SetLegalBalls(newEncounter, errorLogger);
 
             encounterList.Add(newEncounter);
 
@@ -798,8 +799,183 @@ public static class EncounterLocationsSWSH
                 $"IVs: {(flawlessIVCount > 0 ? $"{flawlessIVCount} perfect IVs" : setIVs)}, " +
                 $"Required Marks: {string.Join(", ", newEncounter.RequiredMarks)}, " +
                 $"Possible Marks: {(newEncounter.PossibleMarks.Length > 5 ? string.Join(", ", newEncounter.PossibleMarks.Take(5)) + "..." : string.Join(", ", newEncounter.PossibleMarks))}, " +
-                $"Valid Ribbons: {(newEncounter.ValidRibbons.Length > 5 ? string.Join(", ", newEncounter.ValidRibbons.Take(5)) + "..." : string.Join(", ", newEncounter.ValidRibbons))}");
+                $"Valid Ribbons: {(newEncounter.ValidRibbons.Length > 5 ? string.Join(", ", newEncounter.ValidRibbons.Take(5)) + "..." : string.Join(", ", newEncounter.ValidRibbons))}, " +
+                $"Legal Balls: {string.Join(", ", newEncounter.LegalBalls)}");
         }
+    }
+
+    /// <summary>
+    /// Sets the legal balls for an encounter based on encounter type and game version.
+    /// </summary>
+    private static void SetLegalBalls(EncounterInfo encounter, StreamWriter errorLogger)
+    {
+        var legalBalls = new List<int>();
+        GameVersion gameVersion = DetermineGameVersion(encounter.EncounterVersion);
+
+        // Handle fixed ball encounters first (highest priority)
+        if (!string.IsNullOrEmpty(encounter.FixedBall))
+        {
+            if (Enum.TryParse(encounter.FixedBall, out Ball fixedBall))
+            {
+                legalBalls.Add(ConvertBallToImageId(fixedBall));
+                encounter.LegalBalls = [.. legalBalls];
+                errorLogger.WriteLine($"[{DateTime.Now}] Fixed ball: {encounter.FixedBall}");
+                return;
+            }
+        }
+
+        // Handle egg encounters (special inheritance rules)
+        if (encounter.EncounterType == "Egg")
+        {
+            // For eggs, Master Ball and Cherish Ball can never be inherited
+            for (byte ballId = 1; ballId < 64; ballId++)
+            {
+                var ball = (Ball)ballId;
+                if (ball != Ball.Master && ball != Ball.Cherish &&
+                    BallContextHOME.Instance.CanBreedWithBall((ushort)encounter.SpeciesIndex, (byte)encounter.Form, ball))
+                {
+                    legalBalls.Add(ConvertBallToImageId(ball));
+                }
+            }
+
+            encounter.LegalBalls = [.. legalBalls];
+            errorLogger.WriteLine($"[{DateTime.Now}] Legal balls for egg: {string.Join(", ", legalBalls)}");
+            return;
+        }
+
+        // Handle curry mark encounters (limited ball set)
+        if (encounter.EncounterType.Contains("Curry") || (encounter.PossibleMarks != null && encounter.PossibleMarks.Contains("MarkCurry")))
+        {
+            // For curry encounters, only Poké Ball, Great Ball, and Ultra Ball are legal
+            legalBalls.Add(ConvertBallToImageId(Ball.Poke));
+            legalBalls.Add(ConvertBallToImageId(Ball.Great));
+            legalBalls.Add(ConvertBallToImageId(Ball.Ultra));
+
+            encounter.LegalBalls = [.. legalBalls];
+            errorLogger.WriteLine($"[{DateTime.Now}] Legal balls for curry encounter: {string.Join(", ", legalBalls)}");
+            return;
+        }
+
+        // Determine ball permission mask based on encounter type
+        ulong ballPermitMask;
+
+        if (encounter.EncounterType.Contains("Max Raid"))
+        {
+            // Max Raid encounters use standard Gen 8 balls
+            ballPermitMask = BallUseLegality.WildPokeballs8;
+        }
+        else if (encounter.EncounterType.Contains("Max Lair"))
+        {
+            // Max Lair only allows regular Poké Ball, Great Ball, Ultra Ball, and Premier Ball
+            ballPermitMask = BallUseLegality.WildPokeballs8g_WithRaid;
+        }
+        else if (encounter.IsGift)
+        {
+            // Gift Pokémon typically come in a standard Poké Ball
+            ballPermitMask = 1ul << (int)Ball.Poke;
+        }
+        else if (encounter.EncounterType.Contains("Static"))
+        {
+            // Static encounters use wild catch balls
+            ballPermitMask = BallUseLegality.GetWildBalls(8, gameVersion);
+        }
+        else if (encounter.EncounterType.Contains("Wild") || encounter.EncounterType.Contains("Symbol") || encounter.EncounterType.Contains("Hidden"))
+        {
+            // Wild encounters use the standard ball set for Gen 8
+            ballPermitMask = BallUseLegality.GetWildBalls(8, gameVersion);
+        }
+        else if (encounter.EncounterType.Contains("Evolved"))
+        {
+            // Evolved encounters use the same balls as their base forms
+            ballPermitMask = BallUseLegality.GetWildBalls(8, gameVersion);
+        }
+        else
+        {
+            // Default to standard Gen 8 wild balls for any other encounter type
+            ballPermitMask = BallUseLegality.WildPokeballs8;
+        }
+
+        // Convert the bitmask to a list of legal balls
+        for (byte ballId = 1; ballId < 64; ballId++)
+        {
+            if (BallUseLegality.IsBallPermitted(ballPermitMask, ballId))
+            {
+                var ball = (Ball)ballId;
+
+                // Special case: Heavy Ball can't be used for certain species in Alola
+                // (This check is retained for completeness, though it's more relevant for Gen 7)
+                if (ball == Ball.Heavy && BallUseLegality.IsAlolanCaptureNoHeavyBall((ushort)encounter.SpeciesIndex))
+                {
+                    continue;
+                }
+
+                legalBalls.Add(ConvertBallToImageId(ball));
+            }
+        }
+
+        encounter.LegalBalls = [.. legalBalls];
+        errorLogger.WriteLine($"[{DateTime.Now}] Legal balls: {string.Join(", ", legalBalls)}");
+    }
+
+    /// <summary>
+    /// Determines the game version based on the version string.
+    /// </summary>
+    private static GameVersion DetermineGameVersion(string versionString)
+    {
+        return versionString switch
+        {
+            "Sword" => GameVersion.SW,
+            "Shield" => GameVersion.SH,
+            _ => GameVersion.SWSH, // Both
+        };
+    }
+
+    /// <summary>
+    /// Converts a Ball enum value to the corresponding image ID in the ballImageMap.
+    /// </summary>
+    private static int ConvertBallToImageId(Ball ball)
+    {
+        return ball switch
+        {
+            Ball.Master => 1,
+            Ball.LAPoke => 2,
+            Ball.LAUltra => 3,
+            Ball.Dream => 4,
+            Ball.LAWing => 5,
+            Ball.LAJet => 6,
+            Ball.LALeaden => 7,
+            Ball.LAOrigin => 8, // Origin Ball appears to be 8 in your image map
+            Ball.LAGigaton => 9,
+            Ball.Strange => 10,
+            Ball.Beast => 11,
+            Ball.Ultra => 12,
+            Ball.Great => 13,
+            Ball.Poke => 14,
+            Ball.Safari => 15,
+            Ball.Net => 16,
+            Ball.Dive => 17,
+            Ball.Nest => 18,
+            Ball.Repeat => 19,
+            Ball.Timer => 20,
+            Ball.Luxury => 21,
+            Ball.Premier => 22,
+            Ball.Dusk => 23,
+            Ball.Heal => 24,
+            Ball.Quick => 25,
+            Ball.Cherish => 26,
+            Ball.Fast => 27,
+            Ball.Level => 28,
+            Ball.Lure => 29,
+            Ball.Heavy => 30,
+            Ball.Love => 31,
+            Ball.Friend => 32,
+            Ball.Moon => 33,
+            Ball.Sport => 34,
+            Ball.LAGreat => 36,
+            Ball.LAHeavy => 37,
+            Ball.LAFeather => 38,
+            _ => 14, // Default to Poké Ball for any unmapped balls
+        };
     }
 
     /// <summary>
@@ -1117,5 +1293,9 @@ public static class EncounterLocationsSWSH
         /// Valid Ribbons that an encounter can have.
         /// </summary>
         public string[] ValidRibbons { get; set; } = [];
+        /// <summary>
+        /// Legal balls that can be used for this encounter.
+        /// </summary>
+        public int[] LegalBalls { get; set; } = [];
     }
 }
