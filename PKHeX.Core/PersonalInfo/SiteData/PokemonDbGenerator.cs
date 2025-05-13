@@ -11,6 +11,8 @@ namespace PKHeX.Core;
 /// </summary>
 public static class PokemonDbGenerator
 {
+    private static GameVersion game;
+
     /// <summary>
     /// Generates JSON files for all supported Pokémon games and saves them to the specified directory.
     /// </summary>
@@ -126,7 +128,7 @@ public static class PokemonDbGenerator
             for (byte form = 0; form < formCount; form++)
             {
                 var formPersonalInfo = table.GetFormEntry((ushort)species, form);
-                if (formPersonalInfo == null || !IsSpeciesInGame(formPersonalInfo))
+                if (formPersonalInfo == null || !IsSpeciesInGame(formPersonalInfo, species, form, game))
                     continue;
 
                 if (ShouldExcludeForm(species, form, format))
@@ -146,14 +148,53 @@ public static class PokemonDbGenerator
     /// </summary>
     /// <param name="pi">Personal info of the Pokemon</param>
     /// <returns>True if the species is in the game, false otherwise</returns>
-    private static bool IsSpeciesInGame(PersonalInfo pi) => pi switch
+    private static bool IsSpeciesInGame(PersonalInfo pi, int species, byte form, GameVersion game)
     {
-        PersonalInfo9SV sv => sv.IsPresentInGame,
-        PersonalInfo8SWSH swsh => swsh.IsPresentInGame,
-        PersonalInfo8BDSP bdsp => bdsp.IsPresentInGame,
-        PersonalInfo8LA la => la.IsPresentInGame,
-        _ => true
-    };
+        return pi switch
+        {
+            PersonalInfo9SV sv => sv.IsPresentInGame,
+            PersonalInfo8SWSH swsh => swsh.IsPresentInGame,
+            PersonalInfo8BDSP bdsp => bdsp.IsPresentInGame,
+            PersonalInfo8LA la => la.IsPresentInGame,
+            PersonalInfo7GG gg => IsSpeciesInLGPE(species),
+            _ => true
+        };
+    }
+
+    private static bool IsSpeciesInLGPE(int species)
+    {
+        // LGPE only includes original 151 Kanto Pokémon plus Meltan and Melmetal
+        if (species <= 151)
+            return true;
+
+        // Meltan and Melmetal
+        if (species == 808 || species == 809)
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines if a species can have an Alolan form in LGPE.
+    /// </summary>
+    private static bool IsAlolaPossible(int species)
+    {
+        // These are the Pokémon that can have Alolan forms in LGPE
+        return species switch
+        {
+            19 or 20 => true,  // Rattata line
+            26 => true,        // Raichu
+            27 or 28 => true,  // Sandshrew line
+            37 or 38 => true,  // Vulpix line 
+            50 or 51 => true,  // Diglett line
+            52 or 53 => true,  // Meowth line
+            74 or 75 or 76 => true, // Geodude line
+            88 or 89 => true,  // Grimer line
+            103 => true,       // Exeggutor
+            105 => true,       // Marowak
+            _ => false
+        };
+    }
 
     /// <summary>
     /// Creates a PokemonDbInfo object with the Pokemon's information.
@@ -224,9 +265,42 @@ public static class PokemonDbGenerator
     /// <returns>True if the form should be excluded, false otherwise</returns>
     private static bool ShouldExcludeForm(int species, byte form, byte format, uint formArg = 0)
     {
+        // Special handling for LGPE (Generation 7)
+        if (format == 7 && game == GameVersion.GG)
+        {
+            // For LGPE, allow both regular forms and Alolan forms for eligible species
+            if (species <= 151)
+            {
+                // Form 0 is always allowed (regular form)
+                if (form == 0)
+                    return false;
+
+                // Form 1 is allowed for Alolan forms
+                if (form == 1 && IsAlolaPossible(species))
+                    return false;
+
+                // Special case for Partner Pikachu and Partner Eevee
+                if ((species == (int)Species.Pikachu && form == 8) ||
+                    (species == (int)Species.Eevee && form == 1))
+                {
+                    return false;
+                }
+            }
+
+            // For Meltan and Melmetal, only the base form is allowed
+            if ((species == 808 || species == 809) && form == 0)
+                return false;
+
+            // Exclude all other forms for LGPE
+            return true;
+        }
+
+        // Standard form exclusion logic for other games
         if (FormInfo.IsFusedForm((ushort)species, form, format) ||
             FormInfo.IsBattleOnlyForm((ushort)species, form, format))
+        {
             return true;
+        }
 
         if (species == (int)Species.Keldeo && form == 1)
             return true;
@@ -241,7 +315,9 @@ public static class PokemonDbGenerator
         {
             if ((species == (int)Species.Pikachu && form == 8) ||
                 (species == (int)Species.Eevee && form == 1))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -295,7 +371,7 @@ public static class PokemonDbGenerator
             4 => EntityContext.Gen4,
             5 => EntityContext.Gen5,
             6 => EntityContext.Gen6,
-            7 => game == GameVersion.GG ? EntityContext.Gen7b : EntityContext.Gen7,
+            7 when game == GameVersion.GG => EntityContext.Gen7b,
             8 when game == GameVersion.PLA => EntityContext.Gen8a,
             8 when game == GameVersion.BD || game == GameVersion.SP => EntityContext.Gen8b,
             8 => EntityContext.Gen8,
@@ -326,7 +402,7 @@ public static class PokemonDbGenerator
         {
             legalBalls.Add((int)fixedBall.FixedBall);
         }
-        else if (encounter is EncounterEgg)
+        else if (encounter is IEncounterEgg)
         {
             AddBallInheritanceOptions(pk.Species, pk.Form, encounter, legalBalls);
         }
@@ -344,7 +420,9 @@ public static class PokemonDbGenerator
                     {
                         if (i == (int)Ball.Heavy && encounter.Generation == 7 &&
                             BallUseLegality.IsAlolanCaptureNoHeavyBall(pk.Species))
+                        {
                             continue;
+                        }
 
                         legalBalls.Add(i);
                     }
