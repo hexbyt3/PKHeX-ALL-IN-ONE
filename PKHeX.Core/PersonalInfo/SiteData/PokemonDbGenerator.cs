@@ -11,8 +11,6 @@ namespace PKHeX.Core;
 /// </summary>
 public static class PokemonDbGenerator
 {
-    private static GameVersion game;
-
     /// <summary>
     /// Generates JSON files for all supported Pokémon games and saves them to the specified directory.
     /// </summary>
@@ -119,6 +117,10 @@ public static class PokemonDbGenerator
 
         for (int species = 1; species <= maxSpecies; species++)
         {
+            // Special handling for LGPE
+            if (game == GameVersion.GG && !IsSpeciesInLGPE(species))
+                continue;
+
             var personalInfo = table.GetFormEntry((ushort)species, 0);
             if (personalInfo == null)
                 continue;
@@ -128,10 +130,15 @@ public static class PokemonDbGenerator
             for (byte form = 0; form < formCount; form++)
             {
                 var formPersonalInfo = table.GetFormEntry((ushort)species, form);
-                if (formPersonalInfo == null || !IsSpeciesInGame(formPersonalInfo, species, form, game))
+                if (formPersonalInfo == null)
                     continue;
 
-                if (ShouldExcludeForm(species, form, format))
+                // Game-specific presence check
+                if (!IsSpeciesFormInGame(formPersonalInfo, species, form, game))
+                    continue;
+
+                // General exclusion rules
+                if (ShouldExcludeForm(species, form, format, game))
                     continue;
 
                 var dbInfo = CreatePokemonDbInfo(formPersonalInfo, species, form, game);
@@ -144,23 +151,10 @@ public static class PokemonDbGenerator
     }
 
     /// <summary>
-    /// Determines if a species is present in the current game.
+    /// Determines if a species is present in LGPE games.
     /// </summary>
-    /// <param name="pi">Personal info of the Pokemon</param>
-    /// <returns>True if the species is in the game, false otherwise</returns>
-    private static bool IsSpeciesInGame(PersonalInfo pi, int species, byte form, GameVersion game)
-    {
-        return pi switch
-        {
-            PersonalInfo9SV sv => sv.IsPresentInGame,
-            PersonalInfo8SWSH swsh => swsh.IsPresentInGame,
-            PersonalInfo8BDSP bdsp => bdsp.IsPresentInGame,
-            PersonalInfo8LA la => la.IsPresentInGame,
-            PersonalInfo7GG gg => IsSpeciesInLGPE(species),
-            _ => true
-        };
-    }
-
+    /// <param name="species">Species ID</param>
+    /// <returns>True if the species is in LGPE, false otherwise</returns>
     private static bool IsSpeciesInLGPE(int species)
     {
         // LGPE only includes original 151 Kanto Pokémon plus Meltan and Melmetal
@@ -175,8 +169,69 @@ public static class PokemonDbGenerator
     }
 
     /// <summary>
+    /// Determines if a species/form is present in the specified game.
+    /// </summary>
+    /// <param name="pi">Personal info of the Pokemon</param>
+    /// <param name="species">Species ID</param>
+    /// <param name="form">Form ID</param>
+    /// <param name="game">Game version</param>
+    /// <returns>True if the species/form is in the game, false otherwise</returns>
+    private static bool IsSpeciesFormInGame(PersonalInfo pi, int species, byte form, GameVersion game)
+    {
+        return game switch
+        {
+            GameVersion.SV => pi is PersonalInfo9SV sv && sv.IsPresentInGame,
+            GameVersion.SWSH => pi is PersonalInfo8SWSH swsh && swsh.IsPresentInGame,
+            GameVersion.BDSP => pi is PersonalInfo8BDSP bdsp && bdsp.IsPresentInGame,
+            GameVersion.PLA => pi is PersonalInfo8LA la && la.IsPresentInGame,
+            GameVersion.GG => IsLGPEFormValid(species, form),
+            _ => true
+        };
+    }
+
+    /// <summary>
+    /// Determines if a form is valid in LGPE games.
+    /// </summary>
+    /// <param name="species">Species ID</param>
+    /// <param name="form">Form ID</param>
+    /// <returns>True if the form is valid in LGPE, false otherwise</returns>
+    private static bool IsLGPEFormValid(int species, byte form)
+    {
+        // For LGPE, we have specific rules for which forms are valid
+        if (species <= 151)
+        {
+            // Regular form is always valid
+            if (form == 0)
+                return true;
+
+            // Alolan form is valid for eligible species
+            if (form == 1 && IsAlolaPossible(species))
+                return true;
+
+            // Partner forms
+            if (species == (int)Species.Pikachu && form == 8)
+                return true;
+
+            if (species == (int)Species.Eevee && form == 1)
+                return true;
+
+            // All other forms are invalid
+            return false;
+        }
+
+        // Meltan and Melmetal only have base form
+        if ((species == 808 || species == 809) && form == 0)
+            return true;
+
+        // All other forms are invalid
+        return false;
+    }
+
+    /// <summary>
     /// Determines if a species can have an Alolan form in LGPE.
     /// </summary>
+    /// <param name="species">Species ID</param>
+    /// <returns>True if the species can have an Alolan form, false otherwise</returns>
     private static bool IsAlolaPossible(int species)
     {
         // These are the Pokémon that can have Alolan forms in LGPE
@@ -197,6 +252,56 @@ public static class PokemonDbGenerator
     }
 
     /// <summary>
+    /// Determines if a form should be excluded from the database.
+    /// </summary>
+    /// <param name="species">Species ID</param>
+    /// <param name="form">Form ID</param>
+    /// <param name="format">Game format/generation</param>
+    /// <param name="game">Game version</param>
+    /// <param name="formArg">Optional form argument</param>
+    /// <returns>True if the form should be excluded, false otherwise</returns>
+    private static bool ShouldExcludeForm(int species, byte form, byte format, GameVersion game, uint formArg = 0)
+    {
+        // Always exclude all Alcremie forms (form > 0) regardless of game
+        if (species == (int)Species.Alcremie && form > 0)
+            return true;
+
+        // General exclusion rules for all games
+
+        // Check for battle-only forms
+        if (FormInfo.IsBattleOnlyForm((ushort)species, form, format))
+            return true;
+
+        // Check for fused forms
+        if (FormInfo.IsFusedForm((ushort)species, form, format))
+            return true;
+
+        // Check for untradable forms
+        if (FormInfo.IsUntradable((ushort)species, form, formArg, format))
+            return true;
+
+        // Game-specific exclusions
+        switch (game)
+        {
+            case GameVersion.SV:
+                // Special handling for Koraidon/Miraidon forms in SV
+                if (species is (int)Species.Koraidon or (int)Species.Miraidon && form > 0)
+                    return true;
+                break;
+
+            case GameVersion.GG:
+                // LGPE exclusions already handled in IsLGPEFormValid
+                break;
+        }
+
+        // Additional specific exclusions
+        if (species == (int)Species.Keldeo && form == 1)
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
     /// Creates a PokemonDbInfo object with the Pokemon's information.
     /// </summary>
     /// <param name="pi">Personal info of the Pokemon</param>
@@ -206,8 +311,8 @@ public static class PokemonDbGenerator
     /// <returns>PokemonDbInfo object or null if the form should be excluded</returns>
     private static PokemonDbInfo? CreatePokemonDbInfo(PersonalInfo pi, int species, byte form, GameVersion game)
     {
-        byte format = game.GetGeneration();
-        if (ShouldExcludeForm(species, form, format))
+        byte format = (byte)game.GetGeneration();
+        if (ShouldExcludeForm(species, form, format, game))
             return null;
 
         var strings = GameInfo.GetStrings("en");
@@ -229,7 +334,6 @@ public static class PokemonDbGenerator
 
         int total = pi.HP + pi.ATK + pi.DEF + pi.SPA + pi.SPD + pi.SPE;
         string dexNumber = form > 0 ? $"{species}-{form}" : species.ToString();
-        var legalBalls = GetLegalBalls(species, form, game);
 
         return new PokemonDbInfo
         {
@@ -245,7 +349,6 @@ public static class PokemonDbGenerator
             Abilities = GetAbilitiesString(pi, strings),
             Gender = GetGenderString(pi.Gender),
             Evolutions = GetEvolutionsString(species, form, game),
-            Ball = string.Join(",", legalBalls),
             FrName = GetFormNameByLanguage(species, form, "fr"),
             EsName = GetFormNameByLanguage(species, form, "es"),
             ChHansName = GetFormNameByLanguage(species, form, "zh-Hans"),
@@ -254,272 +357,6 @@ public static class PokemonDbGenerator
             JpName = GetFormNameByLanguage(species, form, "ja")
         };
     }
-
-    /// <summary>
-    /// Determines if a form should be excluded from the database.
-    /// </summary>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    /// <param name="format">Game format/generation</param>
-    /// <param name="formArg">Optional form argument</param>
-    /// <returns>True if the form should be excluded, false otherwise</returns>
-    private static bool ShouldExcludeForm(int species, byte form, byte format, uint formArg = 0)
-    {
-        // Special handling for LGPE (Generation 7)
-        if (format == 7 && game == GameVersion.GG)
-        {
-            // For LGPE, allow both regular forms and Alolan forms for eligible species
-            if (species <= 151)
-            {
-                // Form 0 is always allowed (regular form)
-                if (form == 0)
-                    return false;
-
-                // Form 1 is allowed for Alolan forms
-                if (form == 1 && IsAlolaPossible(species))
-                    return false;
-
-                // Special case for Partner Pikachu and Partner Eevee
-                if ((species == (int)Species.Pikachu && form == 8) ||
-                    (species == (int)Species.Eevee && form == 1))
-                {
-                    return false;
-                }
-            }
-
-            // For Meltan and Melmetal, only the base form is allowed
-            if ((species == 808 || species == 809) && form == 0)
-                return false;
-
-            // Exclude all other forms for LGPE
-            return true;
-        }
-
-        // Standard form exclusion logic for other games
-        if (FormInfo.IsFusedForm((ushort)species, form, format) ||
-            FormInfo.IsBattleOnlyForm((ushort)species, form, format))
-        {
-            return true;
-        }
-
-        if (species == (int)Species.Keldeo && form == 1)
-            return true;
-
-        if (species == (int)Species.Alcremie && form > 0)
-            return true;
-
-        if (species is (int)Species.Koraidon or (int)Species.Miraidon && formArg == 1)
-            return true;
-
-        if (format == 7)
-        {
-            if ((species == (int)Species.Pikachu && form == 8) ||
-                (species == (int)Species.Eevee && form == 1))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Gets legal Pokeballs for a Pokemon in a specific game.
-    /// </summary>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    /// <param name="game">Game version</param>
-    /// <returns>List of legal Pokeball IDs</returns>
-    public static List<int> GetLegalBalls(int species, byte form, GameVersion game)
-    {
-        byte format = game.GetGeneration();
-        if (ShouldExcludeForm(species, form, format))
-            return [];
-
-        var pk = CreateSimplePkm((ushort)species, form, game);
-        var parse = new List<CheckResult>();
-        var info = new LegalInfo(pk, parse);
-        var encounters = EncounterGenerator.GetEncounters(pk, info).ToList();
-
-        var legalBalls = new HashSet<int>();
-
-        if (encounters.Count == 0)
-            return GetFallbackLegalBalls((ushort)species, form, game);
-
-        foreach (var encounter in encounters)
-        {
-            AddLegalBallsForEncounter(encounter, legalBalls, pk);
-        }
-
-        return [.. legalBalls];
-    }
-
-    /// <summary>
-    /// Creates a simple PKM instance for the given species/form/game.
-    /// </summary>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    /// <param name="game">Game version</param>
-    /// <returns>PKM instance</returns>
-    private static PKM CreateSimplePkm(ushort species, byte form, GameVersion game)
-    {
-        var context = game.GetGeneration() switch
-        {
-            1 => EntityContext.Gen1,
-            2 => EntityContext.Gen2,
-            3 => EntityContext.Gen3,
-            4 => EntityContext.Gen4,
-            5 => EntityContext.Gen5,
-            6 => EntityContext.Gen6,
-            7 when game == GameVersion.GG => EntityContext.Gen7b,
-            8 when game == GameVersion.PLA => EntityContext.Gen8a,
-            8 when game == GameVersion.BD || game == GameVersion.SP => EntityContext.Gen8b,
-            8 => EntityContext.Gen8,
-            9 => EntityContext.Gen9,
-            _ => EntityContext.None,
-        };
-
-        PKM pk = EntityBlank.GetBlank(game.GetGeneration(), game);
-        pk.Species = species;
-        pk.Form = form;
-        pk.Version = game;
-        pk.Language = 2; // English
-        pk.CurrentLevel = 50;
-        pk.OriginalTrainerFriendship = 70;
-
-        return pk;
-    }
-
-    /// <summary>
-    /// Adds legal balls for an encounter to the legal balls collection.
-    /// </summary>
-    /// <param name="encounter">Encounter data</param>
-    /// <param name="legalBalls">Collection of legal ball IDs</param>
-    /// <param name="pk">PKM instance</param>
-    private static void AddLegalBallsForEncounter(IEncounterable encounter, HashSet<int> legalBalls, PKM pk)
-    {
-        if (encounter is IFixedBall fixedBall && fixedBall.FixedBall != Ball.None)
-        {
-            legalBalls.Add((int)fixedBall.FixedBall);
-        }
-        else if (encounter is IEncounterEgg)
-        {
-            AddBallInheritanceOptions(pk.Species, pk.Form, encounter, legalBalls);
-        }
-        else
-        {
-            ulong validBalls = BallUseLegality.GetWildBalls(encounter.Generation, encounter.Version);
-
-            if (encounter.Version != GameVersion.PLA)
-            {
-                int maxBallID = 38;
-
-                for (int i = 1; i <= maxBallID; i++)
-                {
-                    if (BallUseLegality.IsBallPermitted(validBalls, (byte)i))
-                    {
-                        if (i == (int)Ball.Heavy && encounter.Generation == 7 &&
-                            BallUseLegality.IsAlolanCaptureNoHeavyBall(pk.Species))
-                        {
-                            continue;
-                        }
-
-                        legalBalls.Add(i);
-                    }
-                }
-            }
-            else
-            {
-                for (int i = 1; i <= 60; i++)
-                {
-                    if (BallUseLegality.IsBallPermitted(validBalls, (byte)i))
-                        legalBalls.Add(i);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Adds ball inheritance options based on breeding rules.
-    /// </summary>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    /// <param name="encounter">Encounter data</param>
-    /// <param name="legalBalls">Collection of legal ball IDs</param>
-    private static void AddBallInheritanceOptions(int species, byte form, IEncounterable encounter, HashSet<int> legalBalls)
-    {
-        byte generation = encounter.Generation;
-
-        if (generation >= 6)
-        {
-            legalBalls.Add(14); // Poké Ball always available
-
-            if (generation >= 7)
-            {
-                ulong validBalls = BallUseLegality.GetWildBalls(generation, encounter.Version);
-
-                for (int i = 1; i <= 38; i++)
-                {
-                    if (BallUseLegality.IsBallPermitted(validBalls, (byte)i))
-                    {
-                        if (i == (int)Ball.Master || i == (int)Ball.Cherish)
-                            continue;
-
-                        legalBalls.Add(i);
-                    }
-                }
-            }
-        }
-        else
-        {
-            legalBalls.Add(14); // Poké Ball
-        }
-    }
-
-    /// <summary>
-    /// Gets a fallback list of legal balls when encounter data is unavailable.
-    /// </summary>
-    /// <param name="species">Species ID</param>
-    /// <param name="form">Form ID</param>
-    /// <param name="game">Game version</param>
-    /// <returns>List of legal ball IDs</returns>
-    private static List<int> GetFallbackLegalBalls(ushort species, byte form, GameVersion game)
-    {
-        var gameGeneration = GetGenerationFromGameVersion(game);
-        ulong wildBalls = BallUseLegality.GetWildBalls(gameGeneration, game);
-
-        var legalBalls = new List<int>();
-        for (int i = 1; i <= 38; i++)
-        {
-            if (BallUseLegality.IsBallPermitted(wildBalls, (byte)i))
-            {
-                legalBalls.Add(i);
-            }
-        }
-
-        if (gameGeneration == 7 && game != GameVersion.GG)
-        {
-            if (BallUseLegality.IsAlolanCaptureNoHeavyBall(species) && legalBalls.Contains(30))
-                legalBalls.Remove(30);
-        }
-
-        return legalBalls;
-    }
-
-    /// <summary>
-    /// Gets the generation number from a game version.
-    /// </summary>
-    /// <param name="game">Game version</param>
-    /// <returns>Generation number</returns>
-    private static byte GetGenerationFromGameVersion(GameVersion game) => game switch
-    {
-        GameVersion.SV => 9,
-        GameVersion.PLA => 8,
-        GameVersion.BDSP => 8,
-        GameVersion.SWSH => 8,
-        GameVersion.GG => 7,
-        _ => 0
-    };
 
     /// <summary>
     /// Gets a Pokemon's form name in a specific language.
@@ -596,8 +433,8 @@ public static class PokemonDbGenerator
     /// <returns>String describing evolution chain</returns>
     private static string GetEvolutionsString(int species, byte form, GameVersion game)
     {
-        byte format = game.GetGeneration();
-        if (ShouldExcludeForm(species, form, format))
+        byte format = (byte)game.GetGeneration();
+        if (ShouldExcludeForm(species, form, format, game))
             return "";
 
         return PokemonEvolutionHelper.GetEvolutionString(species, form, game);
@@ -658,100 +495,95 @@ public static class PokemonDbGenerator
 /// <summary>
 /// Contains information about a Pokemon for the database.
 /// </summary>
-public sealed record PokemonDbInfo
+public sealed class PokemonDbInfo
 {
     /// <summary>
     /// Pokedex number, potentially with form number (e.g. "25-1").
     /// </summary>
-    public required string DexNumber { get; set; }
+    public string DexNumber { get; set; } = string.Empty;
 
     /// <summary>
     /// English name of the Pokemon.
     /// </summary>
-    public required string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Total base stats.
     /// </summary>
-    public required int Total { get; set; }
+    public int Total { get; set; }
 
     /// <summary>
     /// Base HP stat.
     /// </summary>
-    public required int HP { get; set; }
+    public int HP { get; set; }
 
     /// <summary>
     /// Base Attack stat.
     /// </summary>
-    public required int Attack { get; set; }
+    public int Attack { get; set; }
 
     /// <summary>
     /// Base Defense stat.
     /// </summary>
-    public required int Defense { get; set; }
+    public int Defense { get; set; }
 
     /// <summary>
     /// Base Special Attack stat.
     /// </summary>
-    public required int SpAtk { get; set; }
+    public int SpAtk { get; set; }
 
     /// <summary>
     /// Base Special Defense stat.
     /// </summary>
-    public required int SpDef { get; set; }
+    public int SpDef { get; set; }
 
     /// <summary>
     /// Base Speed stat.
     /// </summary>
-    public required int Speed { get; set; }
+    public int Speed { get; set; }
 
     /// <summary>
     /// Comma-separated list of abilities.
     /// </summary>
-    public required string Abilities { get; set; }
+    public string Abilities { get; set; } = string.Empty;
 
     /// <summary>
     /// Gender ratio description.
     /// </summary>
-    public required string Gender { get; set; }
+    public string Gender { get; set; } = string.Empty;
 
     /// <summary>
     /// Evolution chain description.
     /// </summary>
-    public required string Evolutions { get; set; }
-
-    /// <summary>
-    /// Comma-separated list of legal Pokeballs.
-    /// </summary>
-    public required string Ball { get; set; }
+    public string Evolutions { get; set; } = string.Empty;
 
     /// <summary>
     /// French name of the Pokemon.
     /// </summary>
-    public required string FrName { get; set; }
+    public string FrName { get; set; } = string.Empty;
 
     /// <summary>
     /// Spanish name of the Pokemon.
     /// </summary>
-    public required string EsName { get; set; }
+    public string EsName { get; set; } = string.Empty;
 
     /// <summary>
     /// Simplified Chinese name of the Pokemon.
     /// </summary>
-    public required string ChHansName { get; set; }
+    public string ChHansName { get; set; } = string.Empty;
 
     /// <summary>
     /// Traditional Chinese name of the Pokemon.
     /// </summary>
-    public required string ChHantName { get; set; }
+    public string ChHantName { get; set; } = string.Empty;
 
     /// <summary>
     /// German name of the Pokemon.
     /// </summary>
-    public required string DeName { get; set; }
+    public string DeName { get; set; } = string.Empty;
 
     /// <summary>
     /// Japanese name of the Pokemon.
     /// </summary>
-    public required string JpName { get; set; }
+    public string JpName { get; set; } = string.Empty;
 }
