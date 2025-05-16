@@ -859,17 +859,7 @@ public static class EncounterLocationsSWSH
         // Determine ball permission mask based on encounter type
         ulong ballPermitMask;
 
-        if (encounter.EncounterType.Contains("Max Raid"))
-        {
-            // Max Raid encounters use standard Gen 8 balls
-            ballPermitMask = BallUseLegality.WildPokeballs8;
-        }
-        else if (encounter.EncounterType.Contains("Max Lair"))
-        {
-            // Max Lair only allows regular Poké Ball, Great Ball, Ultra Ball, and Premier Ball
-            ballPermitMask = BallUseLegality.WildPokeballs8g_WithRaid;
-        }
-        else if (encounter.IsGift)
+        if (encounter.IsGift)
         {
             // Gift Pokémon typically come in a standard Poké Ball
             ballPermitMask = 1ul << (int)Ball.Poke;
