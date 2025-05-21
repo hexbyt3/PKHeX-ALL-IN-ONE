@@ -28,6 +28,26 @@ public static class GameInfo
         return Languages[index] ??= new GameStrings(lang);
     }
 
+    public static GameStrings GetStrings(int languageID)
+    {
+        // Convert int to LanguageID enum and then to string code
+        LanguageID language = (LanguageID)languageID;
+        string langCode = language switch
+        {
+            LanguageID.Japanese => "ja",
+            LanguageID.English => "en",
+            LanguageID.French => "fr",
+            LanguageID.Italian => "it",
+            LanguageID.German => "de",
+            LanguageID.Spanish => "es",
+            LanguageID.Korean => "ko",
+            LanguageID.ChineseS => "zh-Hans",
+            LanguageID.ChineseT => "zh-Hant",
+            _ => "en"
+        };
+        return GetStrings(langCode);
+    }
+
     public static string GetVersionName(GameVersion version)
     {
         foreach (var kvp in VersionDataSource)
