@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using static PKHeX.Core.Ball;
 
 namespace PKHeX.Core.Legality.Encounters.Data.MetLocations;
 
