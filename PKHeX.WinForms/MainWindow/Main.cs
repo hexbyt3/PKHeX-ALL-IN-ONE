@@ -30,7 +30,7 @@ public partial class Main : Form
         InitializeComponent();
         if (Settings.Display.DisableScalingDpi)
             AutoScaleMode = AutoScaleMode.Font;
-        C_SAV.SetEditEnvironment(new SaveDataEditor<PictureBox>(new FakeSaveFile(), PKME_Tabs));
+        C_SAV.SetEditEnvironment(new SaveDataEditor<PictureBox>(FakeSaveFile.Default, PKME_Tabs));
         FormLoadAddEvents();
 #if DEBUG // translation updater -- all controls are added at this point -- call translate now
         if (DevUtil.IsUpdatingTranslations)
@@ -48,7 +48,7 @@ public partial class Main : Form
         startup.ReadSettings(Settings.Startup);
         startup.ReadTemplateIfNoEntity(TemplatePath);
 
-        if (Settings.Startup.PluginLoadMethod != PluginLoadSetting.DontLoad)
+        if (Settings.Startup.PluginLoadEnable)
             FormLoadPlugins();
 
         FormLoadInitialFiles(startup);
@@ -213,8 +213,8 @@ public partial class Main : Form
 
             while (!IsHandleCreated) // Wait for form to be ready
                 await Task.Delay(2_000).ConfigureAwait(false);
-            Invoke(() => NotifyNewVersionAvailable(latestVersion)); // invoke on GUI thread
-        });
+            await InvokeAsync(() => NotifyNewVersionAvailable(latestVersion)).ConfigureAwait(false); // invoke on GUI thread
+        }).ConfigureAwait(false);
     }
 
     private void NotifyNewVersionAvailable(Version version)
@@ -275,7 +275,7 @@ public partial class Main : Form
 #endif
         try
         {
-            Plugins.AddRange(PluginLoader.LoadPlugins<IPlugin>(PluginPath, Settings.Startup.PluginLoadMethod));
+            Plugins.AddRange(PluginLoader.LoadPlugins<IPlugin>(PluginPath, Settings.Startup.PluginLoadMerged));
         }
         catch (InvalidCastException c)
         {
