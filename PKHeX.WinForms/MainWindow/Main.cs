@@ -48,7 +48,7 @@ public partial class Main : Form
         startup.ReadSettings(Settings.Startup);
         startup.ReadTemplateIfNoEntity(TemplatePath);
 
-        if (Settings.Startup.PluginLoadEnable)
+        if (Settings.Startup.PluginLoadMethod != PluginLoadSetting.DontLoad)
             FormLoadPlugins();
 
         FormLoadInitialFiles(startup);
@@ -275,7 +275,7 @@ public partial class Main : Form
 #endif
         try
         {
-            Plugins.AddRange(PluginLoader.LoadPlugins<IPlugin>(PluginPath, Settings.Startup.PluginLoadMerged));
+            Plugins.AddRange(PluginLoader.LoadPlugins<IPlugin>(PluginPath, Settings.Startup.PluginLoadMethod));
         }
         catch (InvalidCastException c)
         {

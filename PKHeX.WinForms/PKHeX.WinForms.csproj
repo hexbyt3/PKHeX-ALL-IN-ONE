@@ -37,6 +37,7 @@
     <None Remove="MainWindow\Plugins\AutoModPlugins.dll" />
     <None Remove="MainWindow\Plugins\HomeLive.Plugins.dll" />
     <None Remove="MainWindow\Plugins\PluginPile.dll" />
+    <None Remove="MainWindow\Plugins\TeraFinder.Plugins.dll" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,6 +47,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="MainWindow\Plugins\PluginPile.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\TeraFinder.Plugins.dll" />
   </ItemGroup>
 
   <ItemGroup>
