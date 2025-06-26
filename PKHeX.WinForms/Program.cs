@@ -39,13 +39,18 @@ internal static class Program
 #pragma warning disable WFO5001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             Application.SetColorMode(SystemColorMode.Dark);
 #pragma warning restore WFO5001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
+        RegisterCustomNamers();
         var splash = new SplashScreen();
         new Task(() => splash.ShowDialog()).Start();
         new Task(() => EncounterEvent.RefreshMGDB(WinForms.Main.MGDatabasePath)).Start();
         var main = new Main();
         splash.BeginInvoke(splash.ForceClose);
         Application.Run(main);
+    }
+
+    private static void RegisterCustomNamers()
+    {
+        EntityFileNamer.AvailableNamers.Add(new GengarNamer());
     }
 
     // Pipelines build can sometimes tack on text to the version code. Strip it out.
