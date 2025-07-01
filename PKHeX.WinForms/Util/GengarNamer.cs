@@ -20,6 +20,7 @@ namespace PKHeX.WinForms
         {
             // Build each section, ensuring each is always present (even if empty)
             string speciesSection = GetSpeciesSection(pk);
+            string levelSection = GetLevelSection(pk);
             string shinySection = GetShinySection(pk);
             string teraSection = GetTeraSection(pk);
             string natureSection = GetNature(pk);
@@ -31,6 +32,7 @@ namespace PKHeX.WinForms
             // Combine all sections with delimiter
             return string.Join(Delimiter,
                 speciesSection,
+                levelSection,
                 shinySection,
                 teraSection,
                 natureSection,
@@ -56,6 +58,11 @@ namespace PKHeX.WinForms
                 speciesName += "-Gmax";
 
             return speciesName;
+        }
+
+        private static string GetLevelSection(PKM pk)
+        {
+            return pk.CurrentLevel.ToString();
         }
 
         private static string GetShinySection(PKM pk)
@@ -150,6 +157,7 @@ namespace PKHeX.WinForms
         {
             // Build sections for GB Pokémon
             string speciesSection = GetSpeciesSection(gb);
+            string levelSection = GetLevelSection(gb);
             string shinySection = gb.IsShiny ? "Star" : "Normal";
             string ivSection = GetIVSection(gb);
             string yearSection = GetYearSection(gb);
@@ -158,6 +166,7 @@ namespace PKHeX.WinForms
             // Using simplified format for compatibility
             return string.Join(Delimiter,
                 speciesSection,
+                levelSection,
                 shinySection,
                 "None",     // No Tera type
                 GetNature(gb),
