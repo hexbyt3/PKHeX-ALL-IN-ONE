@@ -31,7 +31,7 @@ public static class MethodCXD
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gr)))
                 continue;
-            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                 continue;
 
             var result = LockFinder.IsAllShadowLockValid(enc, seed, pk);
@@ -69,7 +69,7 @@ public static class MethodCXD
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gr)))
                 continue;
-            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                 continue;
 
             pk.PID = pid;
@@ -239,7 +239,7 @@ public static class MethodCXD
     private static bool IsValidTrainerCombination(in EncounterCriteria criteria, uint id32, uint umbreon, uint pidSeed, out uint espeonPID)
     {
         espeonPID = 0;
-        if (ShinyUtil.GetIsShiny(id32, umbreon))
+        if (ShinyUtil.GetIsShiny3(id32, umbreon))
             return false; // Umbreon cannot be shiny
 
         // Generate Espeon PID
@@ -265,7 +265,7 @@ public static class MethodCXD
     /// <summary>
     /// Tries to set a valid PID/IV for the requested criteria for the XD starter (Eevee), preferring to match Trainer IDs.
     /// </summary>
-    public static bool SetStarterFromTrainerID(XK3 pk, EncounterCriteria criteria, ushort tid, ushort sid)
+    public static bool SetStarterFromTrainerID(XK3 pk, in EncounterCriteria criteria, ushort tid, ushort sid)
     {
         // * => TID, SID, fakepid*2, [IVs, ability, PID]
         var filterIVs = criteria.IsSpecifiedIVs(2);
@@ -304,7 +304,7 @@ public static class MethodCXD
     /// <summary>
     /// Tries to set a valid PID/IV with the requested criteria for the XD starter (Eevee), preferring to match the IVs requested.
     /// </summary>
-    public static bool SetStarterFromIVs(XK3 pk, EncounterCriteria criteria)
+    public static bool SetStarterFromIVs(XK3 pk, in EncounterCriteria criteria)
     {
         Span<uint> seeds = stackalloc uint[XDRNG.MaxCountSeedsIV];
         criteria.GetCombinedIVs(out var iv1, out var iv2);
@@ -321,7 +321,7 @@ public static class MethodCXD
             var tid = XDRNG.Prev3(seed) >> 16;
             var sid = XDRNG.Prev2(seed) >> 16;
             var id32 = sid << 16 | tid;
-            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                 continue;
 
             pk.ID32 = id32;
@@ -336,7 +336,7 @@ public static class MethodCXD
     /// <summary>
     /// Sets a random PID/IV with the requested criteria for the XD starter (Eevee).
     /// </summary>
-    public static void SetStarterRandom(XK3 pk, EncounterCriteria criteria, uint seed)
+    public static void SetStarterRandom(XK3 pk, in EncounterCriteria criteria, uint seed)
     {
         bool filterIVs = criteria.IsSpecifiedIVs(2);
         bool checkNameScreen = pk.Language is (int)LanguageID.Japanese;
@@ -363,7 +363,7 @@ public static class MethodCXD
             var tid = XDRNG.Next16(ref start);
             var sid = XDRNG.Next16(ref start);
             var id32 = sid << 16 | tid;
-            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                 continue;
 
             // Get IVs
@@ -407,7 +407,7 @@ public static class MethodCXD
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gender)))
                 continue;
-            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                 continue;
 
             // Get IVs -- separately from the single-stepping seed to avoid deadlock (processing same frames each loop)
@@ -436,7 +436,7 @@ public static class MethodCXD
     /// <summary>
     /// Sets a random PID/IV with the requested criteria for a non-shadow encounter.
     /// </summary>
-    public static void SetRandom<T>(T pk, EncounterCriteria criteria, PersonalInfo3 pi, bool noShiny, uint seed)
+    public static void SetRandom<T>(T pk, in EncounterCriteria criteria, PersonalInfo3 pi, bool noShiny, uint seed)
         where T : G3PKM, ISeparateIVs
     {
         var id32 = pk.ID32;
@@ -451,7 +451,7 @@ public static class MethodCXD
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gender)))
                 continue;
-            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+            if (!noShiny && criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                 continue;
 
             // Get IVs -- separately from the single-stepping seed to avoid deadlock (processing same frames each loop)
@@ -487,7 +487,7 @@ public static class MethodCXD
         while (true)
         {
             uint pid = GetPIDReuseFirst(ref seed);
-            if (!noShiny || !ShinyUtil.GetIsShiny(id32, pid))
+            if (!noShiny || !ShinyUtil.GetIsShiny3(id32, pid))
                 return pid;
         }
     }
@@ -498,7 +498,7 @@ public static class MethodCXD
         while (true)
         {
             uint pid = GetPIDRegular(ref seed);
-            if (!noShiny || !ShinyUtil.GetIsShiny(id32, pid))
+            if (!noShiny || !ShinyUtil.GetIsShiny3(id32, pid))
                 return pid;
         }
     }
@@ -518,7 +518,7 @@ public static class MethodCXD
     private static bool IsMaleEevee(uint pid) => (pid & 0xFF) >= GenderRatioMale87_5;
 
     private static bool IsValidStarterColo(uint id32, uint pid)
-        => IsMaleEevee(pid) && !ShinyUtil.GetIsShiny(id32, pid, 8);
+        => IsMaleEevee(pid) && !ShinyUtil.GetIsShiny3(id32, pid);
 
     private static bool IsMatchIVs(uint iv1, uint iv2, uint seed)
     {

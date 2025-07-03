@@ -7,7 +7,7 @@ namespace PKHeX.Core;
 /// </summary>
 public static class GenerateMethodH
 {
-    public static void SetRandom<T>(this T enc, PK3 pk, PersonalInfo3 pi, EncounterCriteria criteria, uint seed)
+    public static void SetRandom<T>(this T enc, PK3 pk, PersonalInfo3 pi, in EncounterCriteria criteria, uint seed)
         where T : IEncounterSlot3
     {
         var id32 = pk.ID32;
@@ -42,12 +42,10 @@ public static class GenerateMethodH
                 var a = LCRNG.Next16(ref seed);
                 var b = LCRNG.Next16(ref seed);
                 var pid = GetPIDRegular(a, b);
-                if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(id32, pid, 8))
+                if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(id32, pid))
                     continue;
                 if (pid % 25 != nature)
                     continue;
-                if (ShinyUtil.GetIsShiny(id32, pid, 8) != criteria.Shiny.IsShiny())
-                    break; // try again
                 if (criteria.IsSpecifiedAbility() && !criteria.IsSatisfiedAbility((int)(pid & 1)))
                     break; // try again
                 if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gr)))
@@ -74,7 +72,7 @@ public static class GenerateMethodH
         }
     }
 
-    public static void SetRandomUnown<T>(this T enc, PK3 pk, EncounterCriteria criteria, uint seed)
+    public static void SetRandomUnown<T>(this T enc, PK3 pk, in EncounterCriteria criteria, uint seed)
        where T : INumberedSlot, ISpeciesForm
     {
         //bool checkForm = forms.Contains(criteria.Form); // not a property :(
@@ -118,7 +116,7 @@ public static class GenerateMethodH
         }
     }
 
-    public static bool SetFromIVs<T>(this T enc, PK3 pk, PersonalInfo3 pi, EncounterCriteria criteria, bool emerald)
+    public static bool SetFromIVs<T>(this T enc, PK3 pk, PersonalInfo3 pi, in EncounterCriteria criteria, bool emerald)
         where T : IEncounterSlot3
     {
         var gr = pi.Gender;
@@ -207,7 +205,7 @@ public static class GenerateMethodH
         return false;
     }
 
-    public static bool SetFromIVsUnown<T>(this T enc, PK3 pk, EncounterCriteria criteria)
+    public static bool SetFromIVsUnown<T>(this T enc, PK3 pk, in EncounterCriteria criteria)
         where T : IEncounterSlot3
     {
         criteria.GetCombinedIVs(out var iv1, out var iv2);

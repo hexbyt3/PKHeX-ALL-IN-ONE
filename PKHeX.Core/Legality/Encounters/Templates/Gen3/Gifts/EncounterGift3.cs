@@ -181,7 +181,7 @@ public sealed record EncounterGift3 : IEncounterable, IEncounterMatch, IMoveset,
         return GetRandomVersion(Version);
     }
 
-    private uint SetPINGA(PK3 pk, EncounterCriteria criteria, PersonalInfo3 pi)
+    private uint SetPINGA(PK3 pk, in EncounterCriteria criteria, PersonalInfo3 pi)
     {
         if (Method is Channel)
             return SetPINGAChannel(pk, criteria);
@@ -237,7 +237,7 @@ public sealed record EncounterGift3 : IEncounterable, IEncounterMatch, IMoveset,
         return true;
     }
 
-    private static bool TrySetWishmkrShiny(PK3 pk, EncounterCriteria criteria)
+    private static bool TrySetWishmkrShiny(PK3 pk, in EncounterCriteria criteria)
     {
         bool filterIVs = criteria.IsSpecifiedIVs(2);
         bool filterNature = criteria.IsSpecifiedNature();
@@ -268,7 +268,7 @@ public sealed record EncounterGift3 : IEncounterable, IEncounterMatch, IMoveset,
         return pid;
     }
 
-    private static uint SetPINGAChannel(PK3 pk, EncounterCriteria criteria)
+    private static uint SetPINGAChannel(PK3 pk, in EncounterCriteria criteria)
     {
         if (criteria.IsSpecifiedIVsAll())
         {
@@ -282,7 +282,7 @@ public sealed record EncounterGift3 : IEncounterable, IEncounterMatch, IMoveset,
                 var pid = pk.EncryptionConstant;
                 if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
                     continue; // try again
-                if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(pk.ID32, pid, 8))
+                if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(pk.ID32, pid))
                     continue; // try again
                 return seed;
             }
@@ -298,7 +298,7 @@ public sealed record EncounterGift3 : IEncounterable, IEncounterMatch, IMoveset,
             var pid = pk.EncryptionConstant;
             if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
                 continue; // try again
-            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny(pk.ID32, pid, 8))
+            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(pk.ID32, pid))
                 continue; // try again
             var iv32 = pk.IV32;
             if (criteria.IsSpecifiedHiddenPower() && !criteria.IsSatisfiedHiddenPower(iv32))

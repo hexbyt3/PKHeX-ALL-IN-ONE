@@ -58,7 +58,7 @@ public sealed record EncounterStatic6(GameVersion Version)
         var pk = new PK6
         {
             EncryptionConstant = rnd.Rand32(),
-            PID = rnd.Rand32(),
+            PID = EncounterUtil.GetRandomPID(tr, rnd, Shiny, criteria.Shiny),
             Species = Species,
             Form = Form,
             CurrentLevel = LevelMin,
@@ -104,7 +104,7 @@ public sealed record EncounterStatic6(GameVersion Version)
         return pk;
     }
 
-    private void SetPINGA(PK6 pk, EncounterCriteria criteria, PersonalInfo6AO pi)
+    private void SetPINGA(PK6 pk, in EncounterCriteria criteria, PersonalInfo6AO pi)
     {
         if (pk.IsShiny)
         {

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace PKHeX.Core;
 
 /// <summary>
@@ -103,21 +105,11 @@ public sealed record EncounterStatic7(GameVersion Version)
         return pk;
     }
 
-    private void SetPINGA(PK7 pk, EncounterCriteria criteria, PersonalInfo7 pi)
+    private void SetPINGA(PK7 pk, in EncounterCriteria criteria, PersonalInfo7 pi)
     {
         var rnd = Util.Rand;
         pk.EncryptionConstant = rnd.Rand32();
-        pk.PID = rnd.Rand32();
-        if (pk.IsShiny)
-        {
-            if (Shiny == Shiny.Never || (Shiny != Shiny.Always && !criteria.Shiny.IsShiny()))
-                pk.PID ^= 0x1000_0000;
-        }
-        else if (Shiny == Shiny.Always || (Shiny != Shiny.Never && criteria.Shiny.IsShiny()))
-        {
-            var low = pk.PID & 0xFFFF;
-            pk.PID = ((low ^ pk.TID16 ^ pk.SID16) << 16) | low;
-        }
+        pk.PID = EncounterUtil.GetRandomPID(pk, rnd, criteria.Shiny);
 
         if (IVs.IsSpecified)
             criteria.SetRandomIVs(pk, IVs);

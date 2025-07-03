@@ -101,7 +101,7 @@ public sealed record EncounterStatic4(GameVersion Version)
         return pk;
     }
 
-    private void SetPINGA(PK4 pk, EncounterCriteria criteria, PersonalInfo4 pi)
+    private void SetPINGA(PK4 pk, in EncounterCriteria criteria, PersonalInfo4 pi)
     {
         // Pichu is special -- use Pokewalker method
         var gr = pi.Gender;
@@ -163,7 +163,7 @@ public sealed record EncounterStatic4(GameVersion Version)
         while (true)
         {
             var pid = ClassicEraRNG.GetSequentialPID(ref seed);
-            var shiny = ShinyUtil.GetIsShiny(id32, pid, 8);
+            var shiny = ShinyUtil.GetIsShiny3(id32, pid);
             if (criteria.Shiny.IsShiny() != shiny)
                 continue;
 
@@ -203,7 +203,7 @@ public sealed record EncounterStatic4(GameVersion Version)
         {
             var prev3 = LCRNG.Prev3(seed); // Unwind the RNG to get the real origin seed for the PID/IV
             var pid = ClassicEraRNG.GetChainShinyPID(ref prev3, id32);
-            var shiny = ShinyUtil.GetIsShiny(id32, pid, 8);
+            var shiny = ShinyUtil.GetIsShiny3(id32, pid);
             if (criteria.Shiny.IsShiny() != shiny)
                 continue;
             if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))

@@ -336,7 +336,8 @@ public static class WinFormsUtil
         using var sfd = new SaveFileDialog();
         sfd.Filter = genericFilter;
         sfd.DefaultExt = pkx;
-        sfd.FileName = PathUtil.CleanFileName(pk.FileName);
+        var namer = new GengarNamer();
+        sfd.FileName = PathUtil.CleanFileName(namer.GetName(pk));
         if (sfd.ShowDialog() != DialogResult.OK)
             return false;
 
