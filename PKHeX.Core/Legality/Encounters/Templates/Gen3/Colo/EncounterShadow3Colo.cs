@@ -80,7 +80,7 @@ public sealed record EncounterShadow3Colo(byte Index, ushort Gauge, ReadOnlyMemo
 
     private int GetTemplateLanguage(ITrainerInfo tr) => IsEReader ? 1 : (int)Language.GetSafeLanguage(Generation, (LanguageID)tr.Language);
 
-    private void SetPINGA(CK3 pk, EncounterCriteria criteria, PersonalInfo3 pi)
+    private void SetPINGA(CK3 pk, in EncounterCriteria criteria, PersonalInfo3 pi)
     {
         if (!IsEReader)
             SetPINGA_Regular(pk, criteria, pi);
@@ -88,7 +88,7 @@ public sealed record EncounterShadow3Colo(byte Index, ushort Gauge, ReadOnlyMemo
             SetPINGA_EReader(pk, criteria);
     }
 
-    private void SetPINGA_Regular(CK3 pk, EncounterCriteria criteria, PersonalInfo3 pi)
+    private void SetPINGA_Regular(CK3 pk, in EncounterCriteria criteria, PersonalInfo3 pi)
     {
         if (criteria.IsSpecifiedIVsAll() && this.SetFromIVs(pk, criteria, pi, noShiny: false))
             return;
@@ -98,7 +98,7 @@ public sealed record EncounterShadow3Colo(byte Index, ushort Gauge, ReadOnlyMemo
             this.SetRandom(pk, EncounterCriteria.Unrestricted, pi, noShiny: false, seed);
     }
 
-    private void SetPINGA_EReader(CK3 pk, EncounterCriteria criteria)
+    private void SetPINGA_EReader(CK3 pk, in EncounterCriteria criteria)
     {
         // E-Reader have all IVs == 0
         // Skip setting IVs.
@@ -124,7 +124,7 @@ public sealed record EncounterShadow3Colo(byte Index, ushort Gauge, ReadOnlyMemo
             if ((Nature)(pid % 25) != nature || EntityGender.GetFromPIDAndRatio(pid, gr) != gender)
                 continue;
 
-            if (criteria.Shiny.IsShiny() && !ShinyUtil.GetIsShiny(pk.ID32, pid, 8))
+            if (criteria.Shiny.IsShiny() && !ShinyUtil.GetIsShiny3(pk.ID32, pid))
                 continue;
 
             var result = LockFinder.IsAllShadowLockValid(this, seed, pk);
