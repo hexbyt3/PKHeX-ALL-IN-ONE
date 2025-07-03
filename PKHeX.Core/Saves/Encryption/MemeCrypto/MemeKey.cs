@@ -131,7 +131,9 @@ public readonly ref struct MemeKey
 
         // Don't dispose in this method, let the consumer dispose.
         // no IV -- all zero.
-        return RuntimeCryptographyProvider.Aes.Create(key, CipherMode.ECB, PaddingMode.None);
+        var iv = new byte[16]; // AES block size is 16 bytes
+        RandomNumberGenerator.Fill(iv); // Generate a random IV
+        return RuntimeCryptographyProvider.Aes.Create(key, CipherMode.CBC, PaddingMode.None, iv);
     }
 
     /// <summary>
