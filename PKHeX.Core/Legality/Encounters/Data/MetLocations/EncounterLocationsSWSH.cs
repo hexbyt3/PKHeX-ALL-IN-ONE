@@ -181,7 +181,7 @@ public static class EncounterLocationsSWSH
             string setIVs = string.Empty;
 
             // If the encounter has specific IVs set, create a formatted IV string
-            if (encounter.IVs != null && IsIVsSpecified(encounter.IVs))
+            if (IsIVsSpecified(encounter.IVs))
             {
                 setIVs = FormatIVs(encounter.IVs);
             }

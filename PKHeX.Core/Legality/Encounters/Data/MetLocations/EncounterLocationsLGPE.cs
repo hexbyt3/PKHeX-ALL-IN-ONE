@@ -96,7 +96,7 @@ public static class EncounterLocationsLGPE
             string setIVs = string.Empty;
             int flawlessIVCount = encounter.FlawlessIVCount;
 
-            if (encounter.IVs != null && !IsEmptyIVs(encounter.IVs))
+            if (!IsEmptyIVs(encounter.IVs))
             {
                 setIVs = FormatIVs(encounter.IVs);
                 flawlessIVCount = 0; // If specific IVs are set, don't use FlawlessIVCount
@@ -123,7 +123,7 @@ public static class EncounterLocationsLGPE
             string setIVs = string.Empty;
             int flawlessIVCount = 0;
 
-            if (encounter.IVs != null && !IsEmptyIVs(encounter.IVs))
+            if (!IsEmptyIVs(encounter.IVs))
             {
                 setIVs = FormatIVs(encounter.IVs);
             }
