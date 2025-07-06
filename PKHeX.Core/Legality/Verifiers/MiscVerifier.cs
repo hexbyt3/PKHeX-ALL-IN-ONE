@@ -353,7 +353,7 @@ public sealed class MiscVerifier : Verifier
         return -1;
     }
 
-    private static bool IsObedienceLevelValid(PKM pk, byte current, int expectObey)
+    private static bool IsObedienceLevelValid(PKM pk, byte current, byte expectObey)
     {
         if (current > pk.CurrentLevel)
             return false;
@@ -849,6 +849,8 @@ public sealed class MiscVerifier : Verifier
         if (enc.Generation < 8)
             return false;
         if (enc is WC8 { IsHOMEGift: true })
+            return false;
+        if (enc is WC9) // fixed values (usually 0 or 128)
             return false;
         return true;
     }
