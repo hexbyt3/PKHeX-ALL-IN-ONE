@@ -381,7 +381,15 @@ public static class EncounterLocationsSV
             return evo.Level;
         if (evo.Method == EvolutionType.LevelUp && evo.Argument > 0)
             return evo.Argument;
-        return 0;
+
+        // Special cases for Scarlet/Violet move-based evolutions
+        return evo.Method switch
+        {
+            EvolutionType.LevelUpUseMoveSpecial => 35,  // Annihilape (Rage Fist learned at 35)
+            EvolutionType.LevelUpKnowMoveECElse => 32,  // Dudunsparce-0 (Hyper Drill learned at 32)
+            EvolutionType.LevelUpKnowMoveEC100 => 32,   // Dudunsparce-1 (Hyper Drill learned at 32)
+            _ => 0
+        };
     }
 
     /// <summary>
