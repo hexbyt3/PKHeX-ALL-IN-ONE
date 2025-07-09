@@ -1,0 +1,98 @@
+name: .NET Build
+
+on:
+  push:
+    branches: [ "June_Master_Bdawg" ]
+  pull_request:
+    branches: [ "June_Master_Bdawg" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration: [Debug]
+    runs-on: windows-latest
+    env:
+      Solution_Name: PKHeX.sln
+
+    steps:
+    - name: Checkout PKHeX-ALL-IN-ONE
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: June_Master_Bdawg
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Run filename sanitizer
+      run: |
+        python sanitize_filenames.py ${{ github.workspace }}
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+
+    - name: Commit sanitized filenames
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Sanitize filenames for Windows compatibility" || echo "No changes to commit"
+        git push
+      continue-on-error: true
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Checkout PKHeX.Core
+      uses: actions/checkout@v4
+      with:
+        repository: kwsch/PKHeX
+        ref: master
+        path: PKHeX
+
+    - name: Create Directory.Build.props for PKHeX.Core
+      shell: pwsh
+      run: |
+        $PropsFile = Join-Path -Path $env:GITHUB_WORKSPACE -ChildPath "PKHeX/Directory.Build.props"
+        $Content = @"
+        <Project>
+          <PropertyGroup>
+            <TargetFramework>net8.0</TargetFramework>
+          </PropertyGroup>
+        </Project>
+        "@
+        Set-Content -Path $PropsFile -Value $Content
+
+    - name: Build PKHeX.Core
+      run: |
+        cd PKHeX/PKHeX.Core
+        dotnet restore
+        dotnet build --configuration ${{ matrix.configuration }} --no-restore -nowarn:8073,8600,8601,8602,8603,8604,8618,8625,8632
+
+    - name: Debug PKHeX.Core Build Output
+      shell: pwsh
+      run: |
+        $CoreBuildPath = Join-Path -Path $env-tech:GITHUB_WORKSPACE -ChildPath "PKHeX/PKHeX.Core/bin/${{ matrix.configuration }}"
+        Get-ChildItem -Path $CoreBuildPath -Recurse | ForEach-Object { Write-Output $_.FullName }
+
+    - name: Restore NuGet packages
+      run: dotnet restore $env:Solution_Name
+
+    - name: Build PKHeX-ALL-IN-ONE
+      run: dotnet build $env:Solution_Name --configuration ${{ matrix.configuration }} --no-restore -nowarn:8073,8600,8601,8602,8603,8604,8618,8625,8632
+
+    - name: Publish PKHeX.WinForms for win-x64
+      run: dotnet publish PKHeX.WinForms/PKHeX.WinForms.csproj --configuration ${{ matrix.configuration }} --no-restore -r win-x64 -nowarn:8073,8600,8601,8602,8603,8604,8618,8625,8632
+
+    - name: Execute unit tests
+      run: dotnet test $env:Solution_Name --configuration ${{ matrix.configuration }}
+
+    - name: Upload PKHeX Executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PKHeX.Executable
+        path: PKHeX.WinForms/bin/${{ matrix.configuration }}/net8.0-windows/win-x64
