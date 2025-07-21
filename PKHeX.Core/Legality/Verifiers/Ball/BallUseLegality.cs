@@ -3,7 +3,7 @@ using static PKHeX.Core.Species;
 
 namespace PKHeX.Core;
 
-internal static class BallUseLegality
+public static class BallUseLegality
 {
     /// <summary>
     /// In Sun/Moon, capturing with Heavy Ball is impossible in Sun/Moon for specific hard to catch species.
