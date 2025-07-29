@@ -75,11 +75,11 @@ public sealed class TrainerDatabase
 
         if (lang is not null)
         {
-            possible = possible.Select(z =>
+            possible = [.. possible.Select(z =>
             {
                 var filtered = z.Value.Where(x => x.Language == (int)lang).ToList();
                 return new KeyValuePair<GameVersion, List<ITrainerInfo>>(z.Key, filtered);
-            }).Where(z => z.Value.Count != 0).ToList();
+            }).Where(z => z.Value.Count != 0)];
         }
         var span = CollectionsMarshal.AsSpan(possible);
         return GetRandomTrainer(span);
@@ -99,11 +99,11 @@ public sealed class TrainerDatabase
 
         if (lang is not null)
         {
-            possible = possible.Select(z =>
+            possible = [.. possible.Select(z =>
             {
                 var filtered = z.Value.Where(x => x.Language == (int)lang).ToList();
                 return new KeyValuePair<GameVersion, List<ITrainerInfo>>(z.Key, filtered);
-            }).Where(z => z.Value.Count != 0).ToList();
+            }).Where(z => z.Value.Count != 0)];
         }
         var span = CollectionsMarshal.AsSpan(possible);
         return GetRandomTrainer(span);

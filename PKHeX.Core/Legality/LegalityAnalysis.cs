@@ -13,11 +13,11 @@ namespace PKHeX.Core;
 public sealed class LegalityAnalysis
 {
     /// <summary> The entity we are checking. </summary>
-    internal readonly PKM Entity;
+    public readonly PKM Entity;
 
     /// <summary> The entity's <see cref="IPersonalInfo"/>, which may have been sourced from the Save File it resides on. </summary>
     /// <remarks>We store this rather than re-fetching, as some games that use the same <see cref="PKM"/> format have different values.</remarks>
-    internal readonly IPersonalInfo PersonalInfo;
+    public readonly IPersonalInfo PersonalInfo;
 
     private readonly List<CheckResult> Parse = new(8);
 
@@ -63,7 +63,7 @@ public sealed class LegalityAnalysis
 
     private const StorageSlotType Ignore = StorageSlotType.None;
 
-    internal bool IsStoredSlot(StorageSlotType type) => SlotOrigin == type || SlotOrigin is Ignore;
+    public bool IsStoredSlot(StorageSlotType type) => SlotOrigin == type || SlotOrigin is Ignore;
 
     /// <summary>
     /// Checks the input <see cref="PKM"/> data for legality. This is the best method for checking with context, as some games do not have all Alternate Form data available.
@@ -264,13 +264,13 @@ public sealed class LegalityAnalysis
     /// <param name="s">Check severity</param>
     /// <param name="c">Check comment</param>
     /// <param name="i">Check type</param>
-    internal void AddLine(Severity s, LegalityCheckResultCode c, CheckIdentifier i) => AddLine(CheckResult.Get(s, i, c));
+    public void AddLine(Severity s, LegalityCheckResultCode c, CheckIdentifier i) => AddLine(CheckResult.Get(s, i, c));
 
     /// <summary>
     /// Adds a new Check parse value.
     /// </summary>
     /// <param name="chk">Check result to add.</param>
-    internal void AddLine(CheckResult chk) => Parse.Add(chk);
+    public void AddLine(CheckResult chk) => Parse.Add(chk);
 
     private void UpdateVCTransferInfo()
     {
