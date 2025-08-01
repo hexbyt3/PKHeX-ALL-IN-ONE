@@ -32,6 +32,9 @@ public sealed class PIDVerifier : Verifier
         VerifyShiny(data);
     }
 
+    /// <summary>
+    /// Verifies the legality of the EncryptionConstant (PID) for Generation 3 and 4 egg encounters, flagging suspicious or invalid values and checking gender consistency when applicable.
+    /// </summary>
     private static void VerifyEggPID(LegalityAnalysis data, PKM pk, IEncounterEgg egg)
     {
         if (egg is EncounterEgg4)
@@ -68,6 +71,10 @@ public sealed class PIDVerifier : Verifier
             data.AddLine(GetInvalid(CheckIdentifier.EC, PIDGenderMismatch));
     }
 
+    /// <summary>
+    /// Validates the shiny status and PID-related properties of the Pokémon against encounter-specific rules.
+    /// </summary>
+    /// <param name="data">The legality analysis context containing the Pokémon and encounter information.</param>
     private void VerifyShiny(LegalityAnalysis data)
     {
         var pk = data.Entity;

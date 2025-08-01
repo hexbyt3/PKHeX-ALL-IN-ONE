@@ -33,6 +33,11 @@ public sealed record EncounterSlot5(EncounterArea5 Parent, ushort Species, byte 
         _ => throw new ArgumentOutOfRangeException(),
     };
 
+    /// <summary>
+    /// Determines if the hidden ability status should be deferred based on the slot's hidden ability permission and the provided flag.
+    /// </summary>
+    /// <param name="isHidden">Indicates whether the hidden ability is currently selected.</param>
+    /// <returns>True if the hidden ability status is deferred; otherwise, false.</returns>
     private bool IsDeferredHiddenAbility(bool isHidden) => IsHiddenAbilitySlot() switch
     {
         HiddenAbilityPermission.Never => isHidden,
@@ -82,6 +87,12 @@ public sealed record EncounterSlot5(EncounterArea5 Parent, ushort Species, byte 
         return (byte)Util.Rand.Next(PersonalTable.B2W2[Species].FormCount);
     }
 
+    /// <summary>
+    /// Sets the PID, IVs, nature, gender, shiny status, and ability for a generated PK5 Pokémon based on encounter criteria and personal info.
+    /// </summary>
+    /// <param name="pk">The PK5 Pokémon instance to modify.</param>
+    /// <param name="criteria">Criteria specifying encounter constraints such as nature and IVs.</param>
+    /// <param name="pi">Personal information for the species, including gender data.</param>
     private void SetPINGA(PK5 pk, in EncounterCriteria criteria, PersonalInfo5B2W2 pi)
     {
         var seed = Util.Rand.Rand64();

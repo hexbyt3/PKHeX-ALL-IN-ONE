@@ -268,6 +268,15 @@ public sealed class BattleVideo5(Memory<byte> Raw) : IBattleVideo
         entity[0x88..0x9C].CopyTo(video[0x5C..0x70]);
     }
 
+    /// <summary>
+    /// Ensures that the provided spans for the video Pokémon data and the entity are at least the required minimum sizes.
+    /// </summary>
+    /// <param name="entity">The span representing the PK5 entity data.</param>
+    /// <param name="video">The span representing the video format Pokémon data.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if either <paramref name="video"/> is smaller than the expected video Pokémon size,
+    /// or <paramref name="entity"/> is smaller than the expected PK5 entity size.
+    /// </exception>
     private static void VerifySpanSizes(ReadOnlySpan<byte> entity, ReadOnlySpan<byte> video)
     {
         if (video.Length < SizeVideoPoke)
@@ -277,6 +286,11 @@ public sealed class BattleVideo5(Memory<byte> Raw) : IBattleVideo
     }
     #endregion
 
+    /// <summary>
+    /// Determines whether the provided battle video data is in a decrypted state.
+    /// </summary>
+    /// <param name="data">The battle video data to check.</param>
+    /// <returns>True if the data is decrypted; otherwise, false.</returns>
     public static bool GetIsDecrypted(ReadOnlySpan<byte> data)
     {
         if (data.Length < SIZE)
