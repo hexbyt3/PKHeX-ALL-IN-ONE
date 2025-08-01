@@ -34,7 +34,17 @@ public static class MonochromeRNG
     /// <param name="wildXor">Wild XOR is applied to the PID, which increases the chance of a shiny Pokémon (but actually doesn't).</param>
     /// <param name="type">Shiny type to apply to the generated PID.</param>
     /// <param name="ability">The ability permission that determines which ability can be assigned to the Pokémon.</param>
-    /// <param name="forceGender">Single gender is forced, regardless of the criteria.</param>
+    /// <summary>
+    /// Generates and assigns a valid PID and gender to a PK5 Pokémon, ensuring compliance with specified encounter criteria, gender ratio, RNG seed, shiny state, ability permissions, and optional forced gender.
+    /// </summary>
+    /// <param name="pk">The PK5 Pokémon object to update.</param>
+    /// <param name="criteria">Encounter criteria specifying gender, ability, and shiny requirements.</param>
+    /// <param name="gr">The gender ratio value for the species.</param>
+    /// <param name="seed">The 64-bit RNG seed used for PID generation.</param>
+    /// <param name="wildXor">Whether to apply the wild XOR adjustment to the PID.</param>
+    /// <param name="type">The desired shiny state for the generated Pokémon.</param>
+    /// <param name="ability">Ability slot constraints for the generated Pokémon.</param>
+    /// <param name="forceGender">If specified, forces the generated Pokémon to this gender regardless of criteria.</param>
     public static void Generate(PK5 pk, in EncounterCriteria criteria, byte gr, ulong seed, bool wildXor, Shiny type, AbilityPermission ability, byte forceGender = FixedGenderUtil.GenderRandom)
     {
         // The RNG is random enough (64-bit) that our results won't be traceable to a specific seed (sufficiently random).
@@ -112,6 +122,14 @@ public static class MonochromeRNG
         }
     }
 
+    /// <summary>
+    /// Determines if the RNG can produce the maximum possible PID value under the specified conditions.
+    /// </summary>
+    /// <param name="wildXor">Whether the wild XOR modification is applied to the PID.</param>
+    /// <param name="type">The desired shiny state.</param>
+    /// <param name="ability">The required ability slot.</param>
+    /// <param name="forceGender">The forced gender value, or GenderRandom if not forced.</param>
+    /// <returns>True if maximum PID values are possible with the given parameters; false if gender is forced.</returns>
     public static bool CanBeMax(bool wildXor, Shiny type, AbilityPermission ability, byte forceGender = FixedGenderUtil.GenderRandom)
     {
         if (forceGender is not FixedGenderUtil.GenderRandom)
@@ -120,6 +138,19 @@ public static class MonochromeRNG
         return true;
     }
 
+    /// <summary>
+    /// Determines whether the given PID is valid for a forced gender assignment.
+    /// </summary>
+    /// <param name="pid">The Pokémon's personality value.</param>
+    /// <param name="gender">
+    /// The forced gender: 0 for male, 1 for female.
+    /// </param>
+    /// <returns>
+    /// True if the PID's low byte is valid for the specified forced gender; otherwise, false.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if the gender value is not 0 (male) or 1 (female).
+    /// </exception>
     public static bool IsValidForcedRandomGender(uint pid, byte gender) => gender switch
     {
         0 => (pid & 0xFF) is not (254 or 255),
@@ -127,6 +158,13 @@ public static class MonochromeRNG
         _ => throw new ArgumentOutOfRangeException(nameof(gender), gender, null),
     };
 
+    /// <summary>
+    /// Determines if the given shiny XOR value satisfies the desired shiny state and encounter type.
+    /// </summary>
+    /// <param name="desired">The desired shiny state.</param>
+    /// <param name="xor">The shiny XOR value to evaluate.</param>
+    /// <param name="encType">The shiny state of the encounter.</param>
+    /// <returns>True if the shiny state is valid for the given criteria; otherwise, false.</returns>
     private static bool IsShinyStateOK(Shiny desired, uint xor, Shiny encType) => desired switch
     {
         Shiny.AlwaysSquare when encType is not Shiny.Never && xor != 0 => false,
