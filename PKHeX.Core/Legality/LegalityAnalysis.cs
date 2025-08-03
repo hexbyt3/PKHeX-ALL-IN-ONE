@@ -103,7 +103,7 @@ public sealed class LegalityAnalysis
             GetParseMethod()();
 
             foreach (var ext in ExternalLegalityCheck.ExternalCheckers.Values)
-                ext.Check(Parse, this);
+                ext.Verify(this);
 
             Valid = Parse.TrueForAll(chk => chk.Valid)
                     && MoveResult.AllValid(Info.Moves)
