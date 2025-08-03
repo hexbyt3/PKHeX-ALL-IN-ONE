@@ -7,6 +7,8 @@ PKHeX-All-In-One
 ![image](https://github.com/user-attachments/assets/d88c9e4e-78d8-4eb4-906b-bef3f6cc64e8)
 
 ![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/hexbyt3/PKHeX-ALL-IN-ONE/total?color=violet)
+
 
 Pokémon core series save editor, programmed in [C#](https://en.wikipedia.org/wiki/C_Sharp_%28programming_language%29).
 

@@ -81,6 +81,12 @@ public sealed record EncounterStatic5(GameVersion Version)
         return pk;
     }
 
+    /// <summary>
+    /// Generates and assigns the PID, nature, ability, and IVs for the given PK5 Pokémon based on encounter criteria and personal data.
+    /// </summary>
+    /// <param name="pk">The PK5 Pokémon object to modify.</param>
+    /// <param name="criteria">The encounter criteria used for attribute generation.</param>
+    /// <param name="pi">Personal data for the species, including gender ratio.</param>
     private void SetPINGA(PK5 pk, in EncounterCriteria criteria, PersonalInfo5B2W2 pi)
     {
         var seed = Util.Rand.Rand64();

@@ -104,6 +104,12 @@ public sealed record EncounterTrade5B2W2 : IEncounterable, IEncounterMatch, IEnc
         return pk;
     }
 
+    /// <summary>
+    /// Sets the PID, IVs, nature, and ability for a PK5 Pokémon according to the specified encounter criteria and personal info.
+    /// </summary>
+    /// <param name="pk">The PK5 Pokémon object to modify.</param>
+    /// <param name="criteria">Encounter criteria specifying nature, IVs, and other constraints.</param>
+    /// <param name="pi">Personal info for the Pokémon species and form.</param>
     private void SetPINGA(PK5 pk, in EncounterCriteria criteria, PersonalInfo5B2W2 pi)
     {
         var seed = Util.Rand.Rand64();
