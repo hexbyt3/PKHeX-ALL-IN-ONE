@@ -122,14 +122,6 @@ public static class MonochromeRNG
         }
     }
 
-    /// <summary>
-    /// Determines if the RNG can produce the maximum possible PID value under the specified conditions.
-    /// </summary>
-    /// <param name="wildXor">Whether the wild XOR modification is applied to the PID.</param>
-    /// <param name="type">The desired shiny state.</param>
-    /// <param name="ability">The required ability slot.</param>
-    /// <param name="forceGender">The forced gender value, or GenderRandom if not forced.</param>
-    /// <returns>True if maximum PID values are possible with the given parameters; false if gender is forced.</returns>
     public static bool CanBeMax(bool wildXor, Shiny type, AbilityPermission ability, byte forceGender = FixedGenderUtil.GenderRandom)
     {
         if (forceGender is not FixedGenderUtil.GenderRandom)
@@ -138,19 +130,6 @@ public static class MonochromeRNG
         return true;
     }
 
-    /// <summary>
-    /// Determines whether the given PID is valid for a forced gender assignment.
-    /// </summary>
-    /// <param name="pid">The Pokémon's personality value.</param>
-    /// <param name="gender">
-    /// The forced gender: 0 for male, 1 for female.
-    /// </param>
-    /// <returns>
-    /// True if the PID's low byte is valid for the specified forced gender; otherwise, false.
-    /// </returns>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown if the gender value is not 0 (male) or 1 (female).
-    /// </exception>
     public static bool IsValidForcedRandomGender(uint pid, byte gender) => gender switch
     {
         0 => (pid & 0xFF) is not (254 or 255),
