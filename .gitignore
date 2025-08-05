@@ -234,4 +234,5 @@ pingme.txt
 *.userprefs
 
 # Claude Code
-./claude
+claude/
+.claude/
