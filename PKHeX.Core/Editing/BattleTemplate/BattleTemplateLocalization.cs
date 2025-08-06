@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -14,7 +12,7 @@ public sealed record BattleTemplateLocalization(GameStrings Strings, BattleTempl
 {
     public const string DefaultLanguage = GameLanguage.DefaultLanguage; // English
 
-    private static readonly ConcurrentDictionary<string, BattleTemplateLocalization> Cache = new(concurrencyLevel: Environment.ProcessorCount, capacity: 1);
+    private static readonly Dictionary<string, BattleTemplateLocalization> Cache = new(1);
     private static readonly BattleTemplateConfigContext Context = new(LocalizationStorage<BattleTemplateConfig>.Options);
     public static readonly LocalizationStorage<BattleTemplateConfig> ConfigCache = new("battle", Context.BattleTemplateConfig);
     public static readonly BattleTemplateLocalization Default = GetLocalization(DefaultLanguage);
@@ -36,12 +34,14 @@ public sealed record BattleTemplateLocalization(GameStrings Strings, BattleTempl
     /// <param name="language">Language code</param>
     public static BattleTemplateLocalization GetLocalization(string language)
     {
-        return Cache.GetOrAdd(language, static lang =>
-        {
-            var strings = GameInfo.GetStrings(lang);
-            var cfg = GetConfig(lang);
-            return new BattleTemplateLocalization(strings, cfg);
-        });
+        if (Cache.TryGetValue(language, out var result))
+            return result;
+
+        var strings = GameInfo.GetStrings(language);
+        var cfg = GetConfig(language);
+        result = new BattleTemplateLocalization(strings, cfg);
+        Cache[language] = result;
+        return result;
     }
 
     /// <summary>
