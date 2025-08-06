@@ -509,6 +509,16 @@ public partial class Main : Form
         C_SAV.UpdateBoxViewers();
     }
 
+    private void MainMenuLivingDexBuilder(object sender, EventArgs e)
+    {
+        using var form = new SAV_LivingDexBuilder(C_SAV.SAV);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            C_SAV.SetPKMBoxes(); // refresh
+            C_SAV.UpdateBoxViewers();
+        }
+    }
+
     private void MainMenuFolder(object sender, EventArgs e)
     {
         if (this.OpenWindowExists<SAV_FolderList>())
