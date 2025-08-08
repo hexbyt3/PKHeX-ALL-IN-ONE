@@ -1,0 +1,200 @@
+name: Auto-Release
+
+on:
+  push:
+    paths:
+      - 'PKHeX.WinForms/MainWindow/Plugins/**'
+      - 'PKHeX.Core/Resources/legality/**'
+    branches:
+      - main
+      - master
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    
+    - name: Get version from Directory.Build.props
+      id: get_version
+      run: |
+        $xml = [xml](Get-Content Directory.Build.props)
+        $version = $xml.Project.PropertyGroup.Version
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+      shell: pwsh
+    
+    - name: Check if release exists
+      id: check_release
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $releases = gh release list --limit 100
+        if ($releases -match $version) {
+          echo "RELEASE_EXISTS=true" >> $env:GITHUB_OUTPUT
+          echo "Release $version already exists"
+        } else {
+          echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
+          echo "Release $version does not exist"
+        }
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build project
+      run: dotnet build --configuration Release --no-restore
+    
+    - name: Get modified files
+      id: get_changes
+      run: |
+        $plugins = @()
+        $legalityChanged = $false
+        $changedFiles = git diff --name-only HEAD~1 HEAD
+        
+        foreach ($file in $changedFiles) {
+          if ($file -match 'PKHeX\.WinForms/MainWindow/Plugins/(.+\.dll)$') {
+            $plugins += $matches[1]
+          }
+          if ($file -match 'PKHeX\.Core/Resources/legality/') {
+            $legalityChanged = $true
+          }
+        }
+        
+        $pluginList = $plugins -join ','
+        echo "PLUGINS=$pluginList" >> $env:GITHUB_OUTPUT
+        echo "LEGALITY_CHANGED=$legalityChanged" >> $env:GITHUB_OUTPUT
+        echo "Modified plugins: $pluginList"
+        echo "Legality resources changed: $legalityChanged"
+      shell: pwsh
+    
+    - name: Create or update release
+      if: steps.get_changes.outputs.PLUGINS != '' || steps.get_changes.outputs.LEGALITY_CHANGED == 'True'
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $releaseExists = "${{ steps.check_release.outputs.RELEASE_EXISTS }}"
+        $pluginList = "${{ steps.get_changes.outputs.PLUGINS }}"
+        $legalityChanged = "${{ steps.get_changes.outputs.LEGALITY_CHANGED }}"
+        
+        # Prepare release notes
+        $notes = "## Updates`n`n"
+        
+        if ($pluginList -ne '') {
+          $plugins = $pluginList.Split(',')
+          $notes += "### Plugin Updates`n"
+          foreach ($plugin in $plugins) {
+            $notes += "- $plugin`n"
+          }
+          $notes += "`n"
+        }
+        
+        if ($legalityChanged -eq 'True') {
+          $notes += "### Core Updates`n"
+          $notes += "- Updated legality resources`n"
+          $notes += "- PKHeX.exe has been updated`n`n"
+        }
+        
+        $notes += "*This release was automatically generated.*"
+        
+        # Create or update release
+        if ($releaseExists -eq "true") {
+          echo "Updating existing release $version"
+          
+          # Delete old assets if they exist
+          $assets = gh release view $version --json assets --jq '.assets[].name'
+          
+          if ($pluginList -ne '') {
+            $plugins = $pluginList.Split(',')
+            foreach ($plugin in $plugins) {
+              if ($assets -contains $plugin) {
+                gh release delete-asset $version $plugin -y
+              }
+            }
+          }
+          
+          if ($legalityChanged -eq 'True' -and $assets -contains 'PKHeX.exe') {
+            gh release delete-asset $version 'PKHeX.exe' -y
+          }
+          
+          # Upload updated plugins
+          if ($pluginList -ne '') {
+            $plugins = $pluginList.Split(',')
+            foreach ($plugin in $plugins) {
+              $pluginPath = "PKHeX.WinForms/MainWindow/Plugins/$plugin"
+              if (Test-Path $pluginPath) {
+                gh release upload $version $pluginPath --clobber
+              }
+            }
+          }
+          
+          # Upload PKHeX.exe if legality changed
+          if ($legalityChanged -eq 'True') {
+            $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/PKHeX.exe"
+            if (Test-Path $exePath) {
+              gh release upload $version $exePath --clobber
+            }
+          }
+          
+          # Update release notes
+          gh release edit $version --notes "$notes"
+        } else {
+          echo "Creating new release $version"
+          
+          # Create release
+          gh release create $version --title "v$version" --notes "$notes"
+          
+          # Upload plugins
+          if ($pluginList -ne '') {
+            $plugins = $pluginList.Split(',')
+            foreach ($plugin in $plugins) {
+              $pluginPath = "PKHeX.WinForms/MainWindow/Plugins/$plugin"
+              if (Test-Path $pluginPath) {
+                gh release upload $version $pluginPath
+              }
+            }
+          }
+          
+          # Upload PKHeX.exe if legality changed
+          if ($legalityChanged -eq 'True') {
+            $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/PKHeX.exe"
+            if (Test-Path $exePath) {
+              gh release upload $version $exePath
+            }
+          }
+        }
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+    
+    - name: Upload all assets to release
+      if: steps.check_release.outputs.RELEASE_EXISTS == 'true' && (steps.get_changes.outputs.PLUGINS != '' || steps.get_changes.outputs.LEGALITY_CHANGED == 'True')
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $legalityChanged = "${{ steps.get_changes.outputs.LEGALITY_CHANGED }}"
+        
+        # Ensure all plugins in the folder are uploaded
+        $allPlugins = Get-ChildItem -Path "PKHeX.WinForms/MainWindow/Plugins" -Filter "*.dll"
+        foreach ($plugin in $allPlugins) {
+          gh release upload $version $plugin.FullName --clobber
+        }
+        
+        # Upload PKHeX.exe if it exists and legality changed
+        if ($legalityChanged -eq 'True') {
+          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/PKHeX.exe"
+          if (Test-Path $exePath) {
+            gh release upload $version $exePath --clobber
+          }
+        }
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}

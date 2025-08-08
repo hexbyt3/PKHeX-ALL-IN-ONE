@@ -52,6 +52,7 @@ namespace PKHeX.WinForms
             Menu_MGDatabase = new System.Windows.Forms.ToolStripMenuItem();
             Menu_EncDatabase = new System.Windows.Forms.ToolStripMenuItem();
             Menu_BatchEditor = new System.Windows.Forms.ToolStripMenuItem();
+            Menu_LivingDexBuilder = new System.Windows.Forms.ToolStripMenuItem();
             metLocationsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             sVToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             sWSHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -202,7 +203,7 @@ namespace PKHeX.WinForms
             // 
             // Menu_Data
             // 
-            Menu_Data.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { Menu_LoadBoxes, Menu_DumpBoxes, Menu_DumpBox, Menu_Report, Menu_Database, Menu_MGDatabase, Menu_EncDatabase, Menu_BatchEditor, metLocationsToolStripMenuItem, dexDataToolStripMenuItem });
+            Menu_Data.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { Menu_LoadBoxes, Menu_DumpBoxes, Menu_DumpBox, Menu_Report, Menu_Database, Menu_MGDatabase, Menu_EncDatabase, Menu_BatchEditor, Menu_LivingDexBuilder, metLocationsToolStripMenuItem, dexDataToolStripMenuItem });
             Menu_Data.Image = Properties.Resources.data;
             Menu_Data.Name = "Menu_Data";
             Menu_Data.Size = new System.Drawing.Size(180, 22);
@@ -281,6 +282,16 @@ namespace PKHeX.WinForms
             Menu_BatchEditor.Size = new System.Drawing.Size(182, 22);
             Menu_BatchEditor.Text = "Batch Editor";
             Menu_BatchEditor.Click += MainMenuBatchEditor;
+            // 
+            // Menu_LivingDexBuilder
+            // 
+            Menu_LivingDexBuilder.Image = Properties.Resources.database;
+            Menu_LivingDexBuilder.Name = "Menu_LivingDexBuilder";
+            Menu_LivingDexBuilder.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L;
+            Menu_LivingDexBuilder.ShowShortcutKeys = false;
+            Menu_LivingDexBuilder.Size = new System.Drawing.Size(182, 22);
+            Menu_LivingDexBuilder.Text = "Living Dex Builder";
+            Menu_LivingDexBuilder.Click += MainMenuLivingDexBuilder;
             // 
             // metLocationsToolStripMenuItem
             // 
@@ -607,6 +618,7 @@ namespace PKHeX.WinForms
         private System.Windows.Forms.ToolStripMenuItem Menu_DumpBoxes;
         private System.Windows.Forms.ToolStripMenuItem Menu_DumpBox;
         private System.Windows.Forms.ToolStripMenuItem Menu_BatchEditor;
+        private System.Windows.Forms.ToolStripMenuItem Menu_LivingDexBuilder;
         private System.Windows.Forms.ToolStripMenuItem Menu_MGDatabase;
         private System.Windows.Forms.ToolStripMenuItem Menu_Undo;
         private System.Windows.Forms.ToolStripMenuItem Menu_Redo;
