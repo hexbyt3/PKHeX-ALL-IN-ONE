@@ -24,7 +24,7 @@ Current Loaded Plugins:
 * Other misc. features I can't remember off the top of my head right now.
 
 # Live Updates
-Using my [https://github.com/hexbyt3/PKHeX.TemplateRegen](TemplateRegen) program, Pokemon GO data is constantly updated, as well as the mgdb (Mystery Gift Database).  When a change is detected to these files, the .exe is automatically updated in the [Latest Releases](https://github.com/hexbyt3/PKHeX-ALL-IN-ONE/releases) section of this repository.  
+Using my [TemplateRegen](https://github.com/hexbyt3/PKHeX.TemplateRegen) program, Pokemon GO data is constantly updated, as well as the mgdb (Mystery Gift Database).  When a change is detected to these files, the .exe is automatically updated in the [Latest Releases](https://github.com/hexbyt3/PKHeX-ALL-IN-ONE/releases) section of this repository.  
 
 # Discord Support Server
 Join SYNC (SysBot Network Collective) for support regarding this Repository.
