@@ -23,6 +23,9 @@ Current Loaded Plugins:
 * Live Dex Generator - A new feature that is still being worked on that allows users to complete their dex quicker.  Tools > Data > Live Dex Builder
 * Other misc. features I can't remember off the top of my head right now.
 
+# Live Updates
+Using my [https://github.com/hexbyt3/PKHeX.TemplateRegen](TemplateRegen) program, Pokemon GO data is constantly updated, as well as the mgdb (Mystery Gift Database).  When a change is detected to these files, the .exe is automatically updated in the [Latest Releases](https://github.com/hexbyt3/PKHeX-ALL-IN-ONE/releases) section of this repository.  
+
 # Discord Support Server
 Join SYNC (SysBot Network Collective) for support regarding this Repository.
 
