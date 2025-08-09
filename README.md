@@ -1,15 +1,37 @@
 PKHeX-All-In-One
 =====
+![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/hexbyt3/PKHeX-ALL-IN-ONE/total?color=violet)
 <div>
   <span>English</span> / <a href=".github/README-es.md">Español</a> / <a href=".github/README-fr.md">Français</a> / <a href=".github/README-de.md">Deutsch</a> / <a href=".github/README-it.md">Italiano</a> / <a href=".github/README-zh-Hant.md">繁體中文</a> / <a href=".github/README-zh-Hans.md">简体中文</a>
 </div>
 
-![image](https://github.com/user-attachments/assets/d88c9e4e-78d8-4eb4-906b-bef3f6cc64e8)
+# About this Fork
+This is a fork of [PKHeX](https://github.com/kwsch/PKHeX) that is suited to my needs and my community/friends needs.  It has the most popular PKHeX plugins automatically integrated and loaded so that inexperienced users can quickly start using PKHeX without the hassle of figuring out how to clone/build plugins, etc. 
 
-![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/hexbyt3/PKHeX-ALL-IN-ONE/total?color=violet)
+**Please do NOT ask for support on the official PKHeX Discord Server (PDP) or their GitHub.  If you have an issue, please join the appropriate Discord server found below.**
 
+Current Loaded Plugins:
+* [AutoLegalityMod](https://github.com/hexbyt3/ALM4SysBot) - for showdown imports and legalizing.  It also includes LiveHex which is a great way to instantly connect to your modded switch and change various things on your save file.
+* [SWSHSeedFinderPlugin](https://github.com/hexbyt3/SWSHSeedFinderPlugin) - A custom plugin I built to quickly and effectively search for specific seeds from Raids and generate legal pokemon with a few clicks for Sword and Shield.
+* [SVSeedFinderPlugin](https://github.com/hexbyt3/SVSeedFinderPlugin) - Same as above, just for Scarlet/Violet.
+* [TeraFinder](https://github.com/Manu098vm/Tera-Finder) - A Scarlet/Violet plugin for PKHeX specializing in various Tera Raid functions.
+* [PluginPile](https://github.com/foohyfooh/PKHeXPluginPile) - Tons of various plugins for PKHeX for various different games.
 
+# Added Features
+* Dark Theme - Integrates into all menus/submenus, including custom plugins.
+* Live Dex Generator - A new feature that is still being worked on that allows users to complete their dex quicker.  Tools > Data > Live Dex Builder
+* Other misc. features I can't remember off the top of my head right now.
+
+# Discord Support Server
+Join SYNC (SysBot Network Collective) for support regarding this Repository.
+
+[<img src="https://canary.discordapp.com/api/guilds/1369342739581505536/widget.png?style=banner2">](https://discord.gg/WRs22V6DgE)
+
+# Special Thanks
+Thanks to Kswch and all the contributors for their constant updates and maintaining this program and the plugins mentioned above.
+
+# Information
 Pokémon core series save editor, programmed in [C#](https://en.wikipedia.org/wiki/C_Sharp_%28programming_language%29).
 
 Supports the following files:
