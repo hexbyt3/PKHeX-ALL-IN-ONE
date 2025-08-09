@@ -100,7 +100,7 @@ jobs:
           }
           
           # Upload PKHeX.exe
-          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/PKHeX.exe"
+          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/win-x64/PKHeX.exe"
           if (Test-Path $exePath) {
             gh release upload $version $exePath --clobber
           } else {
@@ -124,7 +124,7 @@ jobs:
           gh release create $version --title "v$version" --notes "$notes"
           
           # Upload PKHeX.exe
-          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/PKHeX.exe"
+          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/win-x64/PKHeX.exe"
           if (Test-Path $exePath) {
             gh release upload $version $exePath
           } else {
