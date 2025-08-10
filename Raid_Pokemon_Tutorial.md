@@ -91,7 +91,17 @@ If even ONE thing doesn't match what the seed would produce, PKHeX knows it's il
 
 Instead of trying to create impossible combinations, use the seed finder plugins:
 
-### For Scarlet/Violet:
+### 🎉 GOOD NEWS: If You Have PKHeX-All-In-One
+
+**If you're using PKHeX-All-In-One (this repository), the plugins are ALREADY INCLUDED!** You can skip installation and jump straight to using them:
+- For Scarlet/Violet: Go to Tools → SV Seed Finder
+- For Sword/Shield: Go to Tools → Gen 8 Raid Seed Finder
+
+### If You're Using Regular PKHeX
+
+You'll need to install the plugins separately:
+
+#### For Scarlet/Violet:
 1. **Download the SV Seed Finder Plugin**: [https://github.com/hexbyt3/SVSeedFinderPlugin](https://github.com/hexbyt3/SVSeedFinderPlugin)
 2. **Install it**:
    - Download the .dll file from the releases page
@@ -104,7 +114,7 @@ Instead of trying to create impossible combinations, use the seed finder plugins
    - Let it search for valid seeds
    - Double-click a result to generate that exact Pokémon
 
-### For Sword/Shield:
+#### For Sword/Shield:
 1. **Download the SWSH Seed Finder Plugin**: [https://github.com/hexbyt3/SWSHSeedFinderPlugin](https://github.com/hexbyt3/SWSHSeedFinderPlugin)
 2. **Install it**:
    - Download the .dll file from the releases page
@@ -121,7 +131,7 @@ Instead of trying to create impossible combinations, use the seed finder plugins
 
 Let's find a shiny Pikachu in Scarlet/Violet:
 
-1. **Open PKHeX** and load your save file
+1. **Open PKHeX** (or PKHeX-All-In-One) and load your save file
 2. **Open the SV Seed Finder** (Tools menu)
 3. **Type "Pikachu"** in the species box
 4. **Set your wishes** (but be reasonable!):
