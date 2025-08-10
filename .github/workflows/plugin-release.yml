@@ -52,8 +52,8 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     
-    - name: Build project
-      run: dotnet build --configuration Release --no-restore
+    - name: Publish project
+      run: dotnet publish PKHeX.WinForms/PKHeX.WinForms.csproj --configuration Release --runtime win-x64 --self-contained false -p:PublishSingleFile=true -p:PublishReadyToRun=true -p:IncludeAllContentForSelfExtract=true --output publish
     
     - name: Get modified files
       id: get_changes
@@ -100,14 +100,14 @@ jobs:
           }
           
           # Upload PKHeX.exe
-          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/win-x64/PKHeX.exe"
+          $exePath = "publish/PKHeX.exe"
           if (Test-Path $exePath) {
             gh release upload $version $exePath --clobber
           } else {
             echo "Warning: PKHeX.exe not found at $exePath"
           }
           
-          # Upload PKHeX.Core.dll
+          # Upload PKHeX.Core.dll (from publish directory, embedded in exe but also provided separately)
           $corePath = "PKHeX.Core/bin/Release/net9.0/PKHeX.Core.dll"
           if (Test-Path $corePath) {
             gh release upload $version $corePath --clobber
@@ -124,14 +124,14 @@ jobs:
           gh release create $version --title "v$version" --notes "$notes"
           
           # Upload PKHeX.exe
-          $exePath = "PKHeX.WinForms/bin/Release/net9.0-windows/win-x64/PKHeX.exe"
+          $exePath = "publish/PKHeX.exe"
           if (Test-Path $exePath) {
             gh release upload $version $exePath
           } else {
             echo "Warning: PKHeX.exe not found at $exePath"
           }
           
-          # Upload PKHeX.Core.dll
+          # Upload PKHeX.Core.dll (from build directory, provided separately even though embedded in exe)
           $corePath = "PKHeX.Core/bin/Release/net9.0/PKHeX.Core.dll"
           if (Test-Path $corePath) {
             gh release upload $version $corePath
