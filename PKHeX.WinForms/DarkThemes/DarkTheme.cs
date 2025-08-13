@@ -8,26 +8,93 @@ namespace PKHeX.WinForms;
 
 public static class DarkTheme
 {
+    // Primary colors
     private static readonly Color BackgroundColor = Color.FromArgb(30, 30, 30);
     private static readonly Color SecondaryBackgroundColor = Color.FromArgb(45, 45, 48);
     private static readonly Color ControlBackgroundColor = Color.FromArgb(62, 62, 66);
+    
+    // Slot colors with better contrast
     private static readonly Color SlotBackgroundColor = Color.FromArgb(70, 70, 70);
     private static readonly Color EmptySlotBackgroundColor = Color.FromArgb(85, 85, 85);
+    
+    // Text and border colors
     private static readonly Color TextColor = Color.FromArgb(241, 241, 241);
+    private static readonly Color SubtleTextColor = Color.FromArgb(200, 200, 200);
     private static readonly Color BorderColor = Color.FromArgb(60, 60, 60);
+    
+    // Interactive colors with nice blue accent
     private static readonly Color HoverColor = Color.FromArgb(0, 122, 204);
+    private static readonly Color HoverBackgroundColor = Color.FromArgb(75, 75, 78);
     private static readonly Color SelectedColor = Color.FromArgb(76, 107, 135);
     private static readonly Color AccentColor = Color.FromArgb(0, 122, 204);
+    private static readonly Color FocusColor = Color.FromArgb(0, 140, 225);
+    
+    // State colors
     private static readonly Color DisabledColor = Color.FromArgb(80, 80, 80);
+    private static readonly Color DisabledTextColor = Color.FromArgb(120, 120, 120);
+    private static readonly Color SuccessColor = Color.FromArgb(92, 184, 92);
+    private static readonly Color WarningColor = Color.FromArgb(240, 173, 78);
+    private static readonly Color ErrorColor = Color.FromArgb(217, 83, 79);
 
     private static bool _initialized;
+    private static bool _enabled;
     private static readonly HashSet<IntPtr> ProcessedForms = [];
     private static Timer? _refreshTimer;
 
-    public static void Initialize()
+    public static bool IsEnabled => _enabled;
+
+    public static void SetThemeEnabled(bool enabled)
+    {
+        if (_enabled == enabled)
+            return;
+
+        _enabled = enabled;
+
+        if (_enabled)
+        {
+            if (!_initialized)
+            {
+                Initialize(true);
+                return;
+            }
+
+            foreach (Form form in Application.OpenForms)
+            {
+                ApplyTheme(form);
+            }
+
+            if (_refreshTimer == null)
+            {
+                _refreshTimer = new Timer
+                {
+                    Interval = 500
+                };
+                _refreshTimer.Tick += RefreshTimer_Tick;
+            }
+            _refreshTimer.Start();
+        }
+        else
+        {
+            _refreshTimer?.Stop();
+
+            foreach (Form form in Application.OpenForms)
+            {
+                if (form != null && !form.IsDisposed)
+                {
+                    Application.Restart();
+                }
+            }
+        }
+    }
+
+    public static void Initialize(bool enableDarkTheme = true)
     {
         if (_initialized) return;
         _initialized = true;
+        _enabled = enableDarkTheme;
+
+        if (!_enabled)
+            return;
 
         foreach (Form form in Application.OpenForms)
         {
@@ -46,6 +113,7 @@ public static class DarkTheme
 
     private static void RefreshTimer_Tick(object? sender, EventArgs e)
     {
+        if (!_enabled) return;
         try
         {
             foreach (Form form in Application.OpenForms)
@@ -63,6 +131,7 @@ public static class DarkTheme
 
     public static void RefreshTheme(Control control)
     {
+        if (!_enabled) return;
         if (control == null || control.IsDisposed) return;
 
         if (NeedsRetheming(control))
@@ -76,6 +145,12 @@ public static class DarkTheme
             {
                 ApplyControlTheme(control);
             }
+        }
+        
+        // Ensure TabPages maintain dark theme
+        if (control is TabPage tabPage && tabPage.BackColor != BackgroundColor)
+        {
+            ApplyControlTheme(control);
         }
 
         foreach (Control child in control.Controls)
@@ -108,6 +183,7 @@ public static class DarkTheme
 
     private static void OnApplicationIdle(object? sender, EventArgs e)
     {
+        if (!_enabled) return;
         try
         {
             foreach (Form form in Application.OpenForms)
@@ -139,6 +215,7 @@ public static class DarkTheme
 
     public static void ApplyTheme(Control control)
     {
+        if (!_enabled) return;
         if (control == null || control.IsDisposed) return;
 
         if (control.InvokeRequired)
@@ -167,6 +244,7 @@ public static class DarkTheme
 
     public static void ForceRefreshTheme()
     {
+        if (!_enabled) return;
         foreach (Form form in Application.OpenForms)
         {
             if (form != null && !form.IsDisposed)
@@ -178,6 +256,7 @@ public static class DarkTheme
 
     public static void RefreshBoxSlots()
     {
+        if (!_enabled) return;
         foreach (Form form in Application.OpenForms)
         {
             if (form != null && !form.IsDisposed)
@@ -229,25 +308,48 @@ public static class DarkTheme
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderColor = BorderColor;
             button.FlatAppearance.BorderSize = 1;
-            button.FlatAppearance.MouseOverBackColor = HoverColor;
+            button.FlatAppearance.MouseOverBackColor = HoverBackgroundColor;
             button.FlatAppearance.MouseDownBackColor = SelectedColor;
-
+            
+            // Add subtle rounded corners effect via padding
+            button.Padding = new Padding(2);
+            
+            // Better disabled state
             if (!button.Enabled)
             {
                 button.BackColor = DisabledColor;
+                button.ForeColor = DisabledTextColor;
             }
+            
+            // Add hover event for enhanced visual feedback
+            button.MouseEnter -= Button_MouseEnter;
+            button.MouseEnter += Button_MouseEnter;
+            button.MouseLeave -= Button_MouseLeave;
+            button.MouseLeave += Button_MouseLeave;
         }
         else if (control is TextBox textBox)
         {
             textBox.BackColor = ControlBackgroundColor;
             textBox.ForeColor = TextColor;
             textBox.BorderStyle = BorderStyle.FixedSingle;
+            
+            // Add focus event for better visual feedback
+            textBox.Enter -= TextBox_Enter;
+            textBox.Enter += TextBox_Enter;
+            textBox.Leave -= TextBox_Leave;
+            textBox.Leave += TextBox_Leave;
         }
         else if (control is MaskedTextBox maskedTextBox)
         {
             maskedTextBox.BackColor = ControlBackgroundColor;
             maskedTextBox.ForeColor = TextColor;
             maskedTextBox.BorderStyle = BorderStyle.FixedSingle;
+            
+            // Add focus event for better visual feedback
+            maskedTextBox.Enter -= TextBox_Enter;
+            maskedTextBox.Enter += TextBox_Enter;
+            maskedTextBox.Leave -= TextBox_Leave;
+            maskedTextBox.Leave += TextBox_Leave;
         }
         else if (control is ComboBox comboBox)
         {
@@ -283,6 +385,20 @@ public static class DarkTheme
             tabControl.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl.DrawItem -= TabControl_DrawItem;
             tabControl.DrawItem += TabControl_DrawItem;
+            
+            // Apply theme to all tab pages
+            foreach (TabPage page in tabControl.TabPages)
+            {
+                page.BackColor = BackgroundColor;
+                page.ForeColor = TextColor;
+                page.UseVisualStyleBackColor = false;
+                
+                // Apply to child controls in each tab
+                foreach (Control child in page.Controls)
+                {
+                    ApplyTheme(child);
+                }
+            }
         }
         else if (control is TabPage tabPage)
         {
@@ -290,6 +406,12 @@ public static class DarkTheme
             tabPage.ForeColor = TextColor;
             tabPage.UseVisualStyleBackColor = false;
 
+            // Force apply theme to all child controls in the tab page
+            foreach (Control child in tabPage.Controls)
+            {
+                ApplyTheme(child);
+            }
+            
             tabPage.Refresh();
         }
         else if (control is ListBox listBox)
@@ -455,6 +577,38 @@ public static class DarkTheme
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
 
+    private static void Button_MouseEnter(object? sender, EventArgs e)
+    {
+        if (sender is Button button && button.Enabled)
+        {
+            button.FlatAppearance.BorderColor = HoverColor;
+        }
+    }
+    
+    private static void Button_MouseLeave(object? sender, EventArgs e)
+    {
+        if (sender is Button button && button.Enabled)
+        {
+            button.FlatAppearance.BorderColor = BorderColor;
+        }
+    }
+    
+    private static void TextBox_Enter(object? sender, EventArgs e)
+    {
+        if (sender is Control control)
+        {
+            control.BackColor = Color.FromArgb(75, 75, 78);
+        }
+    }
+    
+    private static void TextBox_Leave(object? sender, EventArgs e)
+    {
+        if (sender is Control control)
+        {
+            control.BackColor = ControlBackgroundColor;
+        }
+    }
+    
     private static void GroupBox_Paint(object? sender, PaintEventArgs e)
     {
         var groupBox = sender as GroupBox;

@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -10,6 +11,8 @@ namespace PKHeX.WinForms;
 public partial class SettingsEditor : Form
 {
     public bool BlankChanged { get; private set; }
+    private bool _themeChanged;
+    private bool _originalThemeSetting;
 
     // Remember the last settings tab for the remainder of the session.
     private static string? Last;
@@ -18,6 +21,17 @@ public partial class SettingsEditor : Form
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
+        
+        // Apply dark theme if enabled
+        if (DarkTheme.IsEnabled)
+        {
+            DarkTheme.ApplyTheme(this);
+        }
+        
+        // Store original theme setting
+        if (obj is PKHeXSettings settings)
+            _originalThemeSetting = settings.Display.UseDarkTheme;
+            
         LoadSettings(obj);
 
         if (obj is PKHeXSettings s)
@@ -63,9 +77,50 @@ public partial class SettingsEditor : Form
 
             var tab = new TabPage(p) { Name = $"Tab_{p}" };
             var pg = new PropertyGrid { SelectedObject = state, Dock = DockStyle.Fill };
+            
+            // Apply dark theme to PropertyGrid if enabled
+            if (DarkTheme.IsEnabled)
+            {
+                pg.ViewBackColor = Color.FromArgb(62, 62, 66);
+                pg.ViewForeColor = Color.FromArgb(241, 241, 241);
+                pg.ViewBorderColor = Color.FromArgb(85, 85, 85);
+                pg.HelpBackColor = Color.FromArgb(45, 45, 48);
+                pg.HelpForeColor = Color.FromArgb(241, 241, 241);
+                pg.HelpBorderColor = Color.FromArgb(85, 85, 85);
+                pg.CategoryForeColor = Color.FromArgb(241, 241, 241);
+                pg.CategorySplitterColor = Color.FromArgb(85, 85, 85);
+                pg.LineColor = Color.FromArgb(85, 85, 85);
+                tab.BackColor = Color.FromArgb(30, 30, 30);
+                tab.ForeColor = Color.FromArgb(241, 241, 241);
+            }
+            
+            // Add property changed event handler for Display settings
+            if (p == "Display" && state is DisplaySettings displaySettings)
+            {
+                pg.PropertyValueChanged += (sender, e) =>
+                {
+                    if (e.ChangedItem?.PropertyDescriptor?.Name == "UseDarkTheme")
+                    {
+                        _themeChanged = displaySettings.UseDarkTheme != _originalThemeSetting;
+                    }
+                };
+            }
+            
             tab.Controls.Add(pg);
             pg.ExpandAllGridItems();
             tabControl1.TabPages.Add(tab);
+        }
+    }
+    
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        base.OnFormClosing(e);
+        
+        if (_themeChanged && !e.Cancel)
+        {
+            var result = WinFormsUtil.Prompt(MessageBoxButtons.OK, 
+                "Theme changes will take effect after restarting the application.", 
+                "Please restart PKHeX to apply the theme changes.");
         }
     }
 

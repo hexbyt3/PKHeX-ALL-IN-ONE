@@ -380,6 +380,9 @@ public sealed class SlotWriteSettings
 
 public sealed class DisplaySettings
 {
+    [LocalizedDescription("Enable dark theme for the application interface.")]
+    public bool UseDarkTheme { get; set; } = true;
+
     [LocalizedDescription("Show Unicode gender symbol characters, or ASCII when disabled.")]
     public bool Unicode { get; set; } = true;
 

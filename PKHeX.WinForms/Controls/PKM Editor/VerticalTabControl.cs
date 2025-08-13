@@ -14,21 +14,42 @@ public class VerticalTabControl : TabControl
     protected static readonly Color DarkBorderColor = Color.FromArgb(85, 85, 85);
     protected static readonly Color DarkHoverColor = Color.FromArgb(0, 122, 204);
 
+    protected bool UseDarkTheme => DarkTheme.IsEnabled;
+
     public VerticalTabControl()
     {
         Alignment = TabAlignment.Right;
         DrawMode = TabDrawMode.OwnerDrawFixed;
         SizeMode = TabSizeMode.Fixed;
 
-        BackColor = DarkBackgroundColor;
-        ForeColor = DarkTextColor;
+        if (UseDarkTheme)
+        {
+            BackColor = DarkBackgroundColor;
+            ForeColor = DarkTextColor;
+        }
+    }
+    
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        if (UseDarkTheme)
+        {
+            // Apply dark theme to all existing tab pages
+            foreach (TabPage tab in TabPages)
+            {
+                tab.BackColor = DarkBackgroundColor;
+                tab.ForeColor = DarkTextColor;
+                tab.UseVisualStyleBackColor = false;
+                ApplyThemeToControls(tab);
+            }
+        }
     }
 
     protected override void WndProc(ref Message m)
     {
         base.WndProc(ref m);
 
-        if (m.Msg == 0x0F) // WM_PAINT
+        if (UseDarkTheme && m.Msg == 0x0F) // WM_PAINT
         {
             using (var g = Graphics.FromHwnd(Handle))
             {
@@ -51,26 +72,43 @@ public class VerticalTabControl : TabControl
         var graphics = e.Graphics;
         if (e.State == DrawItemState.Selected)
         {
-            using var brush = new LinearGradientBrush(bounds, DarkSelectedTabColor, DarkTabBackgroundColor, 90f);
-            graphics.FillRectangle(brush, bounds);
+            if (UseDarkTheme)
+            {
+                using var brush = new LinearGradientBrush(bounds, DarkSelectedTabColor, DarkTabBackgroundColor, 90f);
+                graphics.FillRectangle(brush, bounds);
 
-            using var highlightPen = new Pen(DarkHoverColor, 2);
-            graphics.DrawLine(highlightPen, bounds.Left, bounds.Top, bounds.Left, bounds.Bottom);
+                using var highlightPen = new Pen(DarkHoverColor, 2);
+                graphics.DrawLine(highlightPen, bounds.Left, bounds.Top, bounds.Left, bounds.Bottom);
+            }
+            else
+            {
+                using var brush = new LinearGradientBrush(bounds, Color.White, Color.LightGray, 90f);
+                graphics.FillRectangle(brush, bounds);
+            }
         }
         else
         {
-            using var brush = new SolidBrush(DarkTabBackgroundColor);
-            graphics.FillRectangle(brush, bounds);
+            if (UseDarkTheme)
+            {
+                using var brush = new SolidBrush(DarkTabBackgroundColor);
+                graphics.FillRectangle(brush, bounds);
+            }
+            else
+            {
+                e.DrawBackground();
+            }
         }
 
         using var flags = new StringFormat();
         flags.Alignment = StringAlignment.Center;
         flags.LineAlignment = StringAlignment.Center;
-        using var text = new SolidBrush(DarkTextColor);
+        
+        var textColor = UseDarkTheme ? DarkTextColor : ForeColor;
+        using var text = new SolidBrush(textColor);
         var tab = TabPages[index];
         graphics.DrawString(tab.Text, Font, text, bounds, flags);
 
-        if (tab.BackColor != DarkBackgroundColor)
+        if (UseDarkTheme && tab.BackColor != DarkBackgroundColor)
         {
             tab.BackColor = DarkBackgroundColor;
             tab.ForeColor = DarkTextColor;
@@ -82,11 +120,18 @@ public class VerticalTabControl : TabControl
         base.OnControlAdded(e);
         if (e.Control is TabPage tabPage)
         {
-            tabPage.BackColor = DarkBackgroundColor;
-            tabPage.ForeColor = DarkTextColor;
-            tabPage.UseVisualStyleBackColor = false;
+            if (UseDarkTheme)
+            {
+                tabPage.BackColor = DarkBackgroundColor;
+                tabPage.ForeColor = DarkTextColor;
+                tabPage.UseVisualStyleBackColor = false;
 
-            ApplyDarkThemeToControls(tabPage);
+                ApplyThemeToControls(tabPage);
+            }
+            else
+            {
+                tabPage.UseVisualStyleBackColor = true;
+            }
         }
     }
 
@@ -94,17 +139,20 @@ public class VerticalTabControl : TabControl
     {
         base.OnSelectedIndexChanged(e);
 
-        if (SelectedTab != null)
+        if (UseDarkTheme && SelectedTab != null)
         {
             SelectedTab.BackColor = DarkBackgroundColor;
             SelectedTab.ForeColor = DarkTextColor;
             SelectedTab.UseVisualStyleBackColor = false;
-            ApplyDarkThemeToControls(SelectedTab);
+            ApplyThemeToControls(SelectedTab);
         }
     }
 
-    private void ApplyDarkThemeToControls(Control parent)
+    private void ApplyThemeToControls(Control parent)
     {
+        if (!UseDarkTheme)
+            return;
+
         foreach (Control control in parent.Controls)
         {
             if (control is Panel || control is GroupBox)
@@ -115,7 +163,7 @@ public class VerticalTabControl : TabControl
 
             if (control.HasChildren)
             {
-                ApplyDarkThemeToControls(control);
+                ApplyThemeToControls(control);
             }
         }
     }
@@ -141,22 +189,26 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
 
     public VerticalTabControlEntityEditor()
     {
+        // Always set custom paint style to support both themes
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.DoubleBuffer, true);
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        using (var bgBrush = new SolidBrush(DarkBackgroundColor))
+        // Always paint background based on theme
+        var bgColor = UseDarkTheme ? DarkBackgroundColor : SystemColors.Control;
+        using (var bgBrush = new SolidBrush(bgColor))
         {
             e.Graphics.FillRectangle(bgBrush, ClientRectangle);
         }
 
         var displayRect = DisplayRectangle;
-        using (var displayBrush = new SolidBrush(DarkBackgroundColor))
+        using (var displayBrush = new SolidBrush(bgColor))
         {
             e.Graphics.FillRectangle(displayBrush, displayRect);
         }
 
+        // Draw all tabs
         for (int i = 0; i < TabCount; i++)
         {
             DrawItemEventArgs args = new DrawItemEventArgs(e.Graphics, Font, GetTabRect(i), i,
@@ -164,15 +216,25 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
             OnDrawItem(args);
         }
 
+        // Draw border for selected tab
         if (SelectedTab != null)
         {
+            var borderColor = UseDarkTheme ? DarkBorderColor : SystemColors.ControlDark;
             var tabRect = GetTabRect(SelectedIndex);
             var borderRect = new Rectangle(displayRect.Left - 1, displayRect.Top - 1,
                 displayRect.Width + 1, displayRect.Height + 1);
-            using (var borderPen = new Pen(DarkBorderColor, 1))
+            using (var borderPen = new Pen(borderColor, 1))
             {
                 e.Graphics.DrawRectangle(borderPen, borderRect);
             }
+        }
+        
+        // Ensure selected tab page has correct background
+        if (SelectedTab != null && UseDarkTheme)
+        {
+            SelectedTab.BackColor = DarkBackgroundColor;
+            SelectedTab.ForeColor = DarkTextColor;
+            SelectedTab.UseVisualStyleBackColor = false;
         }
     }
 
@@ -187,21 +249,46 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
         if (e.State == DrawItemState.Selected)
         {
             Color c1, c2;
-            if (Main.Settings?.Draw != null)
+            
+            if (UseDarkTheme)
             {
-                var settings = Main.Settings.Draw;
-                c1 = settings.VerticalSelectPrimary;
-                c2 = settings.VerticalSelectSecondary;
+                if (Main.Settings?.Draw != null)
+                {
+                    var settings = Main.Settings.Draw;
+                    c1 = settings.VerticalSelectPrimary;
+                    c2 = settings.VerticalSelectSecondary;
 
-                if (c1 == Color.White || c1.GetBrightness() > 0.8f)
+                    if (c1 == Color.White || c1.GetBrightness() > 0.8f)
+                        c1 = DarkSelectedTabColor;
+                    if (c2 == Color.LightGray || c2.GetBrightness() > 0.8f)
+                        c2 = DarkTabBackgroundColor;
+                }
+                else
+                {
                     c1 = DarkSelectedTabColor;
-                if (c2 == Color.LightGray || c2.GetBrightness() > 0.8f)
                     c2 = DarkTabBackgroundColor;
+                }
             }
             else
             {
-                c1 = DarkSelectedTabColor;
-                c2 = DarkTabBackgroundColor;
+                // Light theme colors
+                if (Main.Settings?.Draw != null)
+                {
+                    var settings = Main.Settings.Draw;
+                    c1 = settings.VerticalSelectPrimary;
+                    c2 = settings.VerticalSelectSecondary;
+                    
+                    // Don't override if custom colors are set that work for light theme
+                    if (c1 == Color.White)
+                        c1 = Color.FromArgb(255, 255, 255);
+                    if (c2 == Color.LightGray)
+                        c2 = Color.FromArgb(240, 240, 240);
+                }
+                else
+                {
+                    c1 = Color.White;
+                    c2 = Color.LightGray;
+                }
             }
 
             using var brush = new LinearGradientBrush(bounds, c1, c2, 90f);
@@ -218,21 +305,32 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
         }
         else
         {
-            using var brush = new SolidBrush(DarkTabBackgroundColor);
-            graphics.FillRectangle(brush, bounds);
-
-            var mousePos = PointToClient(MousePosition);
-            if (bounds.Contains(mousePos))
+            if (UseDarkTheme)
             {
-                using var hoverBrush = new SolidBrush(Color.FromArgb(50, DarkHoverColor));
-                graphics.FillRectangle(hoverBrush, bounds);
+                using var brush = new SolidBrush(DarkTabBackgroundColor);
+                graphics.FillRectangle(brush, bounds);
+
+                var mousePos = PointToClient(MousePosition);
+                if (bounds.Contains(mousePos))
+                {
+                    using var hoverBrush = new SolidBrush(Color.FromArgb(50, DarkHoverColor));
+                    graphics.FillRectangle(hoverBrush, bounds);
+                }
+            }
+            else
+            {
+                // Light theme - ensure background is visible
+                using var brush = new SolidBrush(SystemColors.Control);
+                graphics.FillRectangle(brush, bounds);
             }
         }
 
         using var flags = new StringFormat();
         flags.Alignment = StringAlignment.Center;
         flags.LineAlignment = StringAlignment.Center;
-        using var text = new SolidBrush(DarkTextColor);
+        
+        var textColor = UseDarkTheme ? DarkTextColor : SystemColors.ControlText;
+        using var text = new SolidBrush(textColor);
         var tab = TabPages[index];
         graphics.DrawString(tab.Text, Font, text, bounds, flags);
     }

@@ -41,7 +41,7 @@ public partial class Main : Form
 #endif
         FormInitializeSecond();
         FormLoadCheckForUpdates();
-        DarkTheme.Initialize();
+        DarkTheme.Initialize(Settings.Display.UseDarkTheme);
         DarkTheme.ApplyTheme(this);
         var startup = new StartupArguments();
         startup.ReadArguments(args);
