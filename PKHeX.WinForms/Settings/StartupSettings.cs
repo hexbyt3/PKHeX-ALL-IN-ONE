@@ -28,7 +28,7 @@ public sealed class StartupSettings : IStartupSettings
     public bool ShowChangelogOnUpdate { get; set; } = true;
 
     [LocalizedDescription("Specify which method to use when loading plugins.")]
-    public PluginLoadSetting PluginLoadMethod { get; set; } = PluginLoadSetting.LoadFrom;
+    public PluginLoadSetting PluginLoadMethod { get; set; } = PluginLoadSetting.LoadFromMerged;
 
     [Browsable(false)]
     [LocalizedDescription("Loads any plugins that were merged into the main executable file.")]
