@@ -32,7 +32,7 @@ Join SYNC (SysBot Network Collective) for support regarding this Repository.
 [<img src="https://canary.discordapp.com/api/guilds/1369342739581505536/widget.png?style=banner2">](https://discord.gg/WRs22V6DgE)
 
 # Special Thanks
-Thanks to Kswch and all the contributors for their constant updates and maintaining this program and the plugins mentioned above.
+Thanks to Kwsch and all the contributors for their constant updates and maintaining this program and the plugins mentioned above.
 
 # Information
 Pokémon core series save editor, programmed in [C#](https://en.wikipedia.org/wiki/C_Sharp_%28programming_language%29).
