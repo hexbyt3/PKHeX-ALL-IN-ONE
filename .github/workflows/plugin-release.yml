@@ -64,24 +64,20 @@ jobs:
         }
         
         # Determine the release version
-        if ($isLegalityUpdate) {
-          # For legality updates, create a new revision
+        # Check if base version release exists
+        $baseVersionExists = $releases -contains $baseVersion -or $releases -contains "v$baseVersion"
+        
+        if ($baseVersionExists) {
+          # If base version exists, create a new revision for both plugin and legality updates
           $newRevision = $latestRevision + 1
           $releaseVersion = "${baseVersion}-rev.${newRevision}"
           echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
           echo "Creating new revision release: $releaseVersion"
         } else {
-          # For plugin updates, use base version
+          # If base version doesn't exist, create it
           $releaseVersion = $baseVersion
-          
-          # Check if base version exists
-          if ($releases -contains $baseVersion -or $releases -contains "v$baseVersion") {
-            echo "RELEASE_EXISTS=true" >> $env:GITHUB_OUTPUT
-            echo "Release $releaseVersion already exists"
-          } else {
-            echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
-            echo "Release $releaseVersion does not exist"
-          }
+          echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
+          echo "Creating initial release: $releaseVersion"
         }
         
         echo "RELEASE_VERSION=$releaseVersion" >> $env:GITHUB_OUTPUT
@@ -129,12 +125,13 @@ jobs:
           $notes += "- Updated legality resources`n"
           $notes += "- PKHeX.exe has been updated`n"
           $notes += "- PKHeX.Core.dll has been updated`n`n"
-          $notes += "*This is a revision release for legality updates only.*"
+          $notes += "*This is a revision release for legality updates.*"
         } else {
           $notes = "## Plugin Updates`n`n"
+          $notes += "- Updated plugin resources`n"
           $notes += "- PKHeX.exe has been updated`n"
           $notes += "- PKHeX.Core.dll has been updated`n`n"
-          $notes += "*This release was automatically generated due to plugin updates.*"
+          $notes += "*This is a revision release for plugin updates.*"
         }
         
         # Create or update release
@@ -173,8 +170,12 @@ jobs:
           echo "Creating new release $version"
           
           # Determine release title
-          if ($isLegalityUpdate -eq "True") {
-            $title = "v$version - Legality Update"
+          if ($version -like "*-rev.*") {
+            if ($isLegalityUpdate -eq "True") {
+              $title = "v$version - Legality Update"
+            } else {
+              $title = "v$version - Plugin Update"
+            }
           } else {
             $title = "v$version"
           }
