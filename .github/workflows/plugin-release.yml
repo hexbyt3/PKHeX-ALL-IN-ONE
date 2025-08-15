@@ -33,18 +33,60 @@ jobs:
         echo "Version: $version"
       shell: pwsh
     
-    - name: Check if release exists
+    - name: Determine release version and check existence
       id: check_release
       run: |
-        $version = "${{ steps.get_version.outputs.VERSION }}"
-        $releases = gh release list --limit 100
-        if ($releases -match $version) {
-          echo "RELEASE_EXISTS=true" >> $env:GITHUB_OUTPUT
-          echo "Release $version already exists"
-        } else {
-          echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
-          echo "Release $version does not exist"
+        $baseVersion = "${{ steps.get_version.outputs.VERSION }}"
+        $changedFiles = git diff --name-only HEAD~1 HEAD
+        
+        # Check if this is a legality update
+        $isLegalityUpdate = $false
+        foreach ($file in $changedFiles) {
+          if ($file -match 'PKHeX\.Core/Resources/legality/') {
+            $isLegalityUpdate = $true
+            break
+          }
         }
+        
+        # Get all releases and find the latest revision for this version
+        $releases = gh release list --limit 100 --json tagName --jq '.[].tagName'
+        $latestRevision = 0
+        
+        foreach ($release in $releases) {
+          if ($release -match "^v?$([regex]::Escape($baseVersion))(?:-rev\.(\d+))?$") {
+            if ($matches[1]) {
+              $revision = [int]$matches[1]
+              if ($revision -gt $latestRevision) {
+                $latestRevision = $revision
+              }
+            }
+          }
+        }
+        
+        # Determine the release version
+        if ($isLegalityUpdate) {
+          # For legality updates, create a new revision
+          $newRevision = $latestRevision + 1
+          $releaseVersion = "${baseVersion}-rev.${newRevision}"
+          echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
+          echo "Creating new revision release: $releaseVersion"
+        } else {
+          # For plugin updates, use base version
+          $releaseVersion = $baseVersion
+          
+          # Check if base version exists
+          if ($releases -contains $baseVersion -or $releases -contains "v$baseVersion") {
+            echo "RELEASE_EXISTS=true" >> $env:GITHUB_OUTPUT
+            echo "Release $releaseVersion already exists"
+          } else {
+            echo "RELEASE_EXISTS=false" >> $env:GITHUB_OUTPUT
+            echo "Release $releaseVersion does not exist"
+          }
+        }
+        
+        echo "RELEASE_VERSION=$releaseVersion" >> $env:GITHUB_OUTPUT
+        echo "IS_LEGALITY_UPDATE=$isLegalityUpdate" >> $env:GITHUB_OUTPUT
+        echo "Final release version: $releaseVersion"
       shell: pwsh
       env:
         GH_TOKEN: ${{ github.token }}
@@ -76,14 +118,24 @@ jobs:
     - name: Create or update release
       if: steps.get_changes.outputs.SHOULD_RELEASE == 'True'
       run: |
-        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $version = "${{ steps.check_release.outputs.RELEASE_VERSION }}"
+        $baseVersion = "${{ steps.get_version.outputs.VERSION }}"
         $releaseExists = "${{ steps.check_release.outputs.RELEASE_EXISTS }}"
+        $isLegalityUpdate = "${{ steps.check_release.outputs.IS_LEGALITY_UPDATE }}"
         
-        # Prepare release notes
-        $notes = "## Core Updates`n`n"
-        $notes += "- PKHeX.exe has been updated`n"
-        $notes += "- PKHeX.Core.dll has been updated`n`n"
-        $notes += "*This release was automatically generated due to plugin or legality resource updates.*"
+        # Prepare release notes based on update type
+        if ($isLegalityUpdate -eq "True") {
+          $notes = "## Legality Database Update`n`n"
+          $notes += "- Updated legality resources`n"
+          $notes += "- PKHeX.exe has been updated`n"
+          $notes += "- PKHeX.Core.dll has been updated`n`n"
+          $notes += "*This is a revision release for legality updates only.*"
+        } else {
+          $notes = "## Plugin Updates`n`n"
+          $notes += "- PKHeX.exe has been updated`n"
+          $notes += "- PKHeX.Core.dll has been updated`n`n"
+          $notes += "*This release was automatically generated due to plugin updates.*"
+        }
         
         # Create or update release
         if ($releaseExists -eq "true") {
@@ -120,8 +172,15 @@ jobs:
         } else {
           echo "Creating new release $version"
           
+          # Determine release title
+          if ($isLegalityUpdate -eq "True") {
+            $title = "v$version - Legality Update"
+          } else {
+            $title = "v$version"
+          }
+          
           # Create release
-          gh release create $version --title "v$version" --notes "$notes"
+          gh release create $version --title "$title" --notes "$notes"
           
           # Upload PKHeX.exe
           $exePath = "publish/PKHeX.exe"
