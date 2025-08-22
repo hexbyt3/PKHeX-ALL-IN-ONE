@@ -236,3 +236,6 @@ pingme.txt
 # Claude Code
 claude/
 .claude/
+
+# PKHeX terminal batch file
+PKHeX terminal.bat
