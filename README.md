@@ -17,6 +17,7 @@ Current Loaded Plugins:
 * [SVSeedFinderPlugin](https://github.com/hexbyt3/SVSeedFinderPlugin) - Same as above, just for Scarlet/Violet.
 * [TeraFinder](https://github.com/Manu098vm/Tera-Finder) - A Scarlet/Violet plugin for PKHeX specializing in various Tera Raid functions.
 * [PluginPile](https://github.com/foohyfooh/PKHeXPluginPile) - Tons of various plugins for PKHeX for various different games.
+* [SpindaPatternPlugin](https://github.com/hexbyt3/SpindaPatternPlugin) - A Spinda Pattern Generator and Viewer.
 
 # Added Features
 * Dark Theme - Integrates into all menus/submenus, including custom plugins.
