@@ -38,6 +38,7 @@
     <None Remove="MainWindow\Plugins\AutoModPlugins.dll" />
     <None Remove="MainWindow\Plugins\HomeLive.Plugins.dll" />
     <None Remove="MainWindow\Plugins\PluginPile.dll" />
+    <None Remove="MainWindow\Plugins\SpindaPatternPlugin.dll" />
     <None Remove="MainWindow\Plugins\SVSeedFinderPlugin.dll" />
     <None Remove="MainWindow\Plugins\SWSHSeedFinderPlugin.dll" />
     <None Remove="MainWindow\Plugins\TeraFinder.Plugins.dll" />
@@ -52,6 +53,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="MainWindow\Plugins\PluginPile.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\SpindaPatternPlugin.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainWindow\Plugins\SVSeedFinderPlugin.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
