@@ -32,17 +32,30 @@ public static class EncounterLocationsSV
 
             var encounterData = new Dictionary<string, List<EncounterInfo>>();
 
+            // Process wild encounters (currently only Paldea available in PKHeX data)
             ProcessRegularEncounters(encounterData, gameStrings, pt, errorLogger);
+            
+            // Process egg met locations (now includes ALL breedable Pokémon from all regions)
             ProcessEggMetLocations(encounterData, gameStrings, pt, errorLogger);
+            
+            // Process Seven Star Raids
             ProcessSevenStarRaids(encounterData, gameStrings, pt, errorLogger);
 
+            // Process Static Encounters for all versions
             ProcessStaticEncounters(Encounters9.Encounter_SV, "Both", encounterData, gameStrings, pt, errorLogger);
             ProcessStaticEncounters(Encounters9.StaticSL, "Scarlet", encounterData, gameStrings, pt, errorLogger);
             ProcessStaticEncounters(Encounters9.StaticVL, "Violet", encounterData, gameStrings, pt, errorLogger);
 
+            // Process Fixed Encounters
             ProcessFixedEncounters(encounterData, gameStrings, pt, errorLogger);
+            
+            // Process Tera Raid Encounters (includes ALL regions: Paldea, Kitakami, Blueberry)
             ProcessTeraRaidEncounters(encounterData, gameStrings, pt, errorLogger);
+            
+            // Process Distribution Encounters
             ProcessDistributionEncounters(encounterData, gameStrings, pt, errorLogger);
+            
+            // Process Outbreak Encounters
             ProcessOutbreakEncounters(encounterData, gameStrings, pt, errorLogger);
 
             var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
@@ -50,6 +63,18 @@ public static class EncounterLocationsSV
 
             File.WriteAllText(outputPath, jsonString, new UTF8Encoding(false));
 
+            // Log summary statistics for validation
+            int totalEncounters = encounterData.Values.Sum(list => list.Count);
+            int uniqueSpecies = encounterData.Count;
+            
+            // Count DLC Pokémon in the results (species 1014+ are primarily from DLC)
+            int dlcPokemonCount = encounterData
+                .Where(kvp => int.TryParse(kvp.Key.Split('-')[0], out int speciesId) && speciesId >= 1014)
+                .Sum(kvp => kvp.Value.Count);
+            
+            errorLogger.WriteLine($"[{DateTime.Now}] Generation complete - Total encounters: {totalEncounters}");
+            errorLogger.WriteLine($"[{DateTime.Now}] Unique Pokémon forms: {uniqueSpecies}");
+            errorLogger.WriteLine($"[{DateTime.Now}] DLC Pokémon encounters (species ≥1014): {dlcPokemonCount}");
             errorLogger.WriteLine($"[{DateTime.Now}] JSON file generated successfully without BOM at: {outputPath}");
         }
         catch (Exception ex)
@@ -63,6 +88,7 @@ public static class EncounterLocationsSV
 
     /// <summary>
     /// Processes and adds egg met locations to the encounter data.
+    /// Ensures all breedable Pokémon from all regions (Paldea, Kitakami, Blueberry) are included.
     /// </summary>
     private static void ProcessEggMetLocations(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         PersonalTable9SV pt, StreamWriter errorLogger)
@@ -72,13 +98,17 @@ public static class EncounterLocationsSV
 
         errorLogger.WriteLine($"[{DateTime.Now}] Processing egg met locations with location ID: {eggMetLocationId} ({locationName})");
 
-        for (ushort species = 1; species < pt.MaxSpeciesID; species++)
+        int processedSpecies = 0;
+        int processedForms = 0;
+
+        // Process all species up to MaxSpeciesID (includes all DLC Pokémon through Pecharunt)
+        for (ushort species = 1; species <= pt.MaxSpeciesID; species++)
         {
             var personalInfo = pt.GetFormEntry(species, 0);
             if (personalInfo is null or { IsPresentInGame: false })
                 continue;
 
-            if (personalInfo.EggGroup1 == 15 || personalInfo.EggGroup2 == 15)
+            if (!Breeding.CanHatchAsEgg(species))
                 continue;
 
             byte formCount = personalInfo.FormCount;
@@ -88,7 +118,8 @@ public static class EncounterLocationsSV
                 if (formInfo is null or { IsPresentInGame: false })
                     continue;
 
-                if (formInfo.EggGroup1 == 15 || formInfo.EggGroup2 == 15)
+                // Check if this specific form can be hatched (handles special form restrictions)
+                if (!Breeding.CanHatchAsEgg(species, form, EntityContext.Gen9))
                     continue;
 
                 AddSingleEncounterInfo(
@@ -110,16 +141,28 @@ public static class EncounterLocationsSV
                     SizeType9.RANDOM,
                     0
                 );
+
+                processedForms++;
             }
+            processedSpecies++;
         }
+
+        errorLogger.WriteLine($"[{DateTime.Now}] Processed {processedSpecies} breedable species with {processedForms} total forms");
     }
 
     /// <summary>
     /// Processes and adds regular wild encounters to the encounter data.
+    /// Currently only processes Paldea wild encounters as DLC wild encounter data is not available in PKHeX.
     /// </summary>
     private static void ProcessRegularEncounters(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         PersonalTable9SV pt, StreamWriter errorLogger)
     {
+        errorLogger.WriteLine($"[{DateTime.Now}] Processing wild encounters from Paldea region");
+        int processedAreas = 0;
+        int processedSlots = 0;
+
+        // Process wild encounters from all available regions
+        // Currently only Paldea wild encounters are available in PKHeX data
         foreach (var area in Encounters9.Slots)
         {
             var locationId = area.Location;
@@ -131,8 +174,13 @@ public static class EncounterLocationsSV
                 AddEncounterInfoWithEvolutions(encounterData, gameStrings, pt, errorLogger, slot.Species, slot.Form,
                     locationName, locationId, slot.LevelMin, slot.LevelMax, "Wild", false, false,
                     string.Empty, "Both", SizeType9.RANDOM, 0);
+                processedSlots++;
             }
+            processedAreas++;
         }
+
+        errorLogger.WriteLine($"[{DateTime.Now}] Processed {processedAreas} wild areas with {processedSlots} total encounter slots");
+        errorLogger.WriteLine($"[{DateTime.Now}] Note: DLC wild encounter data not available in PKHeX - using comprehensive egg processing instead");
     }
 
     /// <summary>

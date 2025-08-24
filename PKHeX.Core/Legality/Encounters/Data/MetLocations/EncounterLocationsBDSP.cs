@@ -139,7 +139,7 @@ public static class EncounterLocationsBDSP
                 continue;
             }
 
-            if (personalInfo.EggGroup1 == 15 || personalInfo.EggGroup2 == 15)
+            if (!Breeding.CanHatchAsEgg(species))
             {
                 continue;
             }
@@ -153,7 +153,8 @@ public static class EncounterLocationsBDSP
                     continue;
                 }
 
-                if (formInfo.EggGroup1 == 15 || formInfo.EggGroup2 == 15)
+                // Check if this specific form can be hatched (handles special form restrictions)
+                if (!Breeding.CanHatchAsEgg(species, form, EntityContext.Gen8b))
                 {
                     continue;
                 }
