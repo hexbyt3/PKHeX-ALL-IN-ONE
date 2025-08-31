@@ -132,27 +132,40 @@ public partial class Main : Form
 
     public async Task CheckForUpdates()
     {
-        Version? latestVersion;
+        string? latestTag;
         // User might not be connected to the internet or with a flaky connection.
-        try { latestVersion = UpdateUtil.GetLatestPKHeXVersion(); }
+        try 
+        { 
+            latestTag = UpdateUtil.GetLatestReleaseTag();
+        }
         catch (Exception ex)
         {
             Debug.WriteLine($"Exception while checking for latest version: {ex}");
             return;
         }
-        if (latestVersion is null || latestVersion <= Program.CurrentVersion)
+        
+        if (latestTag is null)
             return;
-
+            
+        // Simple string comparison - if tags differ, there's an update
+        // This handles both base version updates and revision releases
+        var currentTag = Program.CurrentVersionString.TrimStart('v');
+        var latestTagClean = latestTag.TrimStart('v');
+        
+        if (currentTag == latestTagClean)
+            return; // Same version, no update
+        
         while (!IsHandleCreated) // Wait for form to be ready
             await Task.Delay(2_000).ConfigureAwait(false);
-        await InvokeAsync(() => NotifyNewVersionAvailable(latestVersion)).ConfigureAwait(false); // invoke on GUI thread
+        await InvokeAsync(() => NotifyNewVersionAvailable(latestTag)).ConfigureAwait(false); // invoke on GUI thread
     }
 
-    private void NotifyNewVersionAvailable(Version version)
+    private void NotifyNewVersionAvailable(string versionTag)
     {
-        var date = $"{2000 + version.Major:00}{version.Minor:00}{version.Build:00}";
+        // Display the full version tag including revision if present
+        var displayVersion = versionTag.StartsWith("v") ? versionTag.Substring(1) : versionTag;
         var lbl = L_UpdateAvailable;
-        lbl.Text = $"{MsgProgramUpdateAvailable} {date}";
+        lbl.Text = $"{MsgProgramUpdateAvailable} {displayVersion}";
         lbl.Click += (_, _) => Process.Start(new ProcessStartInfo(ThreadPath) { UseShellExecute = true });
         lbl.Visible = lbl.TabStop = lbl.Enabled = true;
     }

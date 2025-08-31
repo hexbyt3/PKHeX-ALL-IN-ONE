@@ -16,6 +16,9 @@ internal static class Program
 {
     // Pipelines build can sometimes tack on text to the version code. Strip it out.
     public static readonly Version CurrentVersion = Version.Parse(GetSaneVersionTag(Application.ProductVersion));
+    
+    // Store the full version string including revision tags for update checking
+    public static readonly string CurrentVersionString = Application.ProductVersion;
 
     public static readonly string WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? "";
     public const string ConfigFileName = "cfg.json";
