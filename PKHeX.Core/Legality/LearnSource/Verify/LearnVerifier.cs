@@ -38,8 +38,8 @@ internal static class LearnVerifier
         }
 
         // Check invalid Egg Move combinations.
-        if (enc is EncounterEgg { Generation: <= 5 } egg)
-            EggMoveVerifier.FlagEggMoveCombination(result, current, egg);
+        if (enc is IEncounterEgg && enc.Generation <= 5)
+            EggMoveVerifier.FlagEggMoveCombination(result, current, enc);
     }
 
     private static void Finalize(Span<MoveResult> result, ReadOnlySpan<ushort> current)

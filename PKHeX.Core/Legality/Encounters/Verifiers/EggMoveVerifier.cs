@@ -21,7 +21,7 @@ public static class EggMoveVerifier
     /// <param name="enc">Matched encounter</param>
     public static void FlagEggMoveCombination(Span<MoveResult> result, ReadOnlySpan<ushort> current, IEncounterTemplate enc)
     {
-        if (enc is not EncounterEgg egg)
+        if (enc is not IEncounterEgg egg)
             return; // Did not hatch from an Egg
         if (enc.Generation >= 6)
             return; // Can inherit Egg Moves from either parent, so all possible combinations are legal
