@@ -64,7 +64,7 @@ public partial class Main : Form
 
     public static IReadOnlyList<string> GenderSymbols { get; private set; } = GameInfo.GenderSymbolUnicode;
     public static bool HaX => Program.HaX;
-    private static List<IPlugin> Plugins { get; }= [];
+    private static List<IPlugin> Plugins { get; } = [];
     #endregion
 
     #region Path Variables
@@ -169,7 +169,7 @@ public partial class Main : Form
         C_SAV.HaX = PKME_Tabs.HaX = HaX;
 
 #if DEBUG
-        DevUtil.AddControl(Menu_Tools);
+        DevUtil.AddDeveloperControls(Menu_Tools, Plugins);
 #endif
 
         // Select Language
@@ -181,10 +181,9 @@ public partial class Main : Form
         var folder = Settings.LocalResources.GetPluginPath();
         if (Plugins.Count != 0)
             return; // already loaded
-#if !MERGED // merged should load dlls from within too, folder is no longer required
         if (!Directory.Exists(folder))
             return;
-#endif
+
         try
         {
             Plugins.AddRange(PluginLoader.LoadPlugins<IPlugin>(folder, Settings.Startup.PluginLoadMethod));
@@ -195,7 +194,7 @@ public partial class Main : Form
             return;
         }
 
-        var list = Plugins.OrderBy(z => z.Priority).ToList();
+        var list = Plugins.OrderBy(z => z.Priority);
         foreach (var p in list)
         {
             try
@@ -229,7 +228,7 @@ public partial class Main : Form
     {
         if (ModifierKeys == Keys.Control) // triggered via hotkey
         {
-            if (DialogResult.Yes != WinFormsUtil.Prompt(MessageBoxButtons.YesNo, "Quit PKHeX?"))
+            if (DialogResult.Yes != WinFormsUtil.Prompt(MessageBoxButtons.YesNo, MsgConfirmQuitProgram))
                 return;
         }
 
@@ -453,8 +452,16 @@ public partial class Main : Form
 
         var invalid = set.InvalidLines;
         if (invalid.Count != 0)
-            WinFormsUtil.Alert(MsgSimulatorInvalid, string.Join(Environment.NewLine, invalid));
-
+        {
+            var localization = BattleTemplateParseErrorLocalization.Get(CurrentLanguage);
+            var sb = new System.Text.StringBuilder();
+            foreach (var line in invalid)
+            {
+                var error = line.Humanize(localization);
+                sb.AppendLine(error);
+            }
+            WinFormsUtil.Alert(MsgSimulatorInvalid, sb.ToString());
+        }
         PKME_Tabs.LoadShowdownSet(set);
     }
 
@@ -1168,7 +1175,7 @@ public partial class Main : Form
         PB_Legal.Visible = true;
         bool isValid = (sender as bool?) != false;
         PB_Legal.Image = SpriteUtil.GetLegalIndicator(isValid);
-        toolTip.SetToolTip(PB_Legal, isValid ? "Valid" : "Invalid: Click for more info");
+        toolTip.SetToolTip(PB_Legal, isValid ? MsgLegalityHoverValid : MsgLegalityHoverInvalid);
     }
 
     private void PKME_Tabs_RequestShowdownExport(object sender, EventArgs e) => ClickShowdownExportPKM(sender, e);
