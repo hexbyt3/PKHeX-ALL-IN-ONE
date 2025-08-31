@@ -10,7 +10,7 @@ public static class UpdateUtil
     /// <returns>A version representing the latest available version of PKHeX, or null if the latest version could not be determined</returns>
     public static Version? GetLatestPKHeXVersion()
     {
-        const string apiEndpoint = "https://api.github.com/repos/kwsch/pkhex/releases/latest";
+        const string apiEndpoint = "https://api.github.com/repos/hexbyt3/PKHeX-ALL-IN-ONE/releases/latest";
         var responseJson = NetUtil.GetStringFromURL(new Uri(apiEndpoint));
         if (responseJson is null)
             return null;
