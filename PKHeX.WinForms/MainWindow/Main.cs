@@ -415,7 +415,19 @@ public partial class Main : Form
 
     private void MainMenuLivingDexBuilder(object sender, EventArgs e)
     {
-        using var form = new SAV_LivingDexBuilder(C_SAV.SAV);
+        // Create and populate trainer database from TrainerPath
+        var db = new TrainerDatabase();
+        var sav = C_SAV.SAV;
+        var dir = TrainerPath;
+        if (Directory.Exists(dir))
+        {
+            var files = Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories);
+            var pk = BoxUtil.GetPKMsFromPaths(files, sav.Context);
+            foreach (var f in pk)
+                db.RegisterCopy(f);
+        }
+        
+        using var form = new SAV_LivingDexBuilder(sav, db);
         if (form.ShowDialog() == DialogResult.OK)
         {
             C_SAV.SetPKMBoxes(); // refresh

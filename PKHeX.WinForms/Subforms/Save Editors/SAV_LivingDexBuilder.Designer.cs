@@ -39,6 +39,7 @@ namespace PKHeX.WinForms
             CHK_Forms = new System.Windows.Forms.CheckBox();
             CHK_Shiny = new System.Windows.Forms.CheckBox();
             CHK_MinLevel = new System.Windows.Forms.CheckBox();
+            CHK_AllGames = new System.Windows.Forms.CheckBox();
             CB_Sorting = new System.Windows.Forms.ComboBox();
             L_Sorting = new System.Windows.Forms.Label();
             GB_Missing = new System.Windows.Forms.GroupBox();
@@ -62,6 +63,7 @@ namespace PKHeX.WinForms
             GB_Options.Controls.Add(L_StartBox);
             GB_Options.Controls.Add(CHK_LegalOnly);
             GB_Options.Controls.Add(CHK_MysteryGifts);
+            GB_Options.Controls.Add(CHK_AllGames);
             GB_Options.Controls.Add(CHK_Gender);
             GB_Options.Controls.Add(CHK_Forms);
             GB_Options.Controls.Add(CHK_Shiny);
@@ -70,7 +72,7 @@ namespace PKHeX.WinForms
             GB_Options.Controls.Add(L_Sorting);
             GB_Options.Location = new System.Drawing.Point(12, 12);
             GB_Options.Name = "GB_Options";
-            GB_Options.Size = new System.Drawing.Size(260, 243);
+            GB_Options.Size = new System.Drawing.Size(260, 270);
             GB_Options.TabIndex = 0;
             GB_Options.TabStop = false;
             GB_Options.Text = "Options";
@@ -88,30 +90,30 @@ namespace PKHeX.WinForms
             // CHK_OverwriteExisting
             // 
             CHK_OverwriteExisting.AutoSize = true;
-            CHK_OverwriteExisting.Location = new System.Drawing.Point(10, 213);
+            CHK_OverwriteExisting.Location = new System.Drawing.Point(10, 240);
             CHK_OverwriteExisting.Name = "CHK_OverwriteExisting";
             CHK_OverwriteExisting.Size = new System.Drawing.Size(152, 17);
-            CHK_OverwriteExisting.TabIndex = 10;
+            CHK_OverwriteExisting.TabIndex = 11;
             CHK_OverwriteExisting.Text = "Overwrite Existing Pokémon";
             CHK_OverwriteExisting.UseVisualStyleBackColor = true;
             // 
             // NUD_StartBox
             // 
-            NUD_StartBox.Location = new System.Drawing.Point(100, 187);
+            NUD_StartBox.Location = new System.Drawing.Point(100, 214);
             NUD_StartBox.Maximum = new decimal(new int[] { 32, 0, 0, 0 });
             NUD_StartBox.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             NUD_StartBox.Name = "NUD_StartBox";
             NUD_StartBox.Size = new System.Drawing.Size(50, 20);
-            NUD_StartBox.TabIndex = 9;
+            NUD_StartBox.TabIndex = 10;
             NUD_StartBox.Value = new decimal(new int[] { 1, 0, 0, 0 });
             // 
             // L_StartBox
             // 
             L_StartBox.AutoSize = true;
-            L_StartBox.Location = new System.Drawing.Point(10, 189);
+            L_StartBox.Location = new System.Drawing.Point(10, 216);
             L_StartBox.Name = "L_StartBox";
             L_StartBox.Size = new System.Drawing.Size(52, 13);
-            L_StartBox.TabIndex = 8;
+            L_StartBox.TabIndex = 9;
             L_StartBox.Text = "Start Box:";
             // 
             // CHK_LegalOnly
@@ -119,7 +121,7 @@ namespace PKHeX.WinForms
             CHK_LegalOnly.AutoSize = true;
             CHK_LegalOnly.Checked = true;
             CHK_LegalOnly.CheckState = System.Windows.Forms.CheckState.Checked;
-            CHK_LegalOnly.Location = new System.Drawing.Point(10, 163);
+            CHK_LegalOnly.Location = new System.Drawing.Point(10, 190);
             CHK_LegalOnly.Name = "CHK_LegalOnly";
             CHK_LegalOnly.Size = new System.Drawing.Size(75, 17);
             CHK_LegalOnly.TabIndex = 9;
@@ -129,18 +131,29 @@ namespace PKHeX.WinForms
             // CHK_MysteryGifts
             // 
             CHK_MysteryGifts.AutoSize = true;
-            CHK_MysteryGifts.Location = new System.Drawing.Point(10, 140);
+            CHK_MysteryGifts.Location = new System.Drawing.Point(10, 167);
             CHK_MysteryGifts.Name = "CHK_MysteryGifts";
             CHK_MysteryGifts.Size = new System.Drawing.Size(135, 17);
             CHK_MysteryGifts.TabIndex = 8;
             CHK_MysteryGifts.Text = "Include Mystery Gifts";
             CHK_MysteryGifts.UseVisualStyleBackColor = true;
             // 
+            // CHK_AllGames
+            // 
+            CHK_AllGames.AutoSize = true;
+            CHK_AllGames.Checked = true;
+            CHK_AllGames.CheckState = System.Windows.Forms.CheckState.Checked;
+            CHK_AllGames.Location = new System.Drawing.Point(10, 144);
+            CHK_AllGames.Name = "CHK_AllGames";
+            CHK_AllGames.Size = new System.Drawing.Size(135, 17);
+            CHK_AllGames.TabIndex = 7;
+            CHK_AllGames.Text = "Include Paired Version";
+            CHK_AllGames.UseVisualStyleBackColor = true;
+            CHK_AllGames.CheckedChanged += FilterChanged;
+            // 
             // CHK_Gender
             // 
             CHK_Gender.AutoSize = true;
-            CHK_Gender.Checked = true;
-            CHK_Gender.CheckState = System.Windows.Forms.CheckState.Checked;
             CHK_Gender.Location = new System.Drawing.Point(10, 117);
             CHK_Gender.Name = "CHK_Gender";
             CHK_Gender.Size = new System.Drawing.Size(140, 17);
@@ -165,6 +178,8 @@ namespace PKHeX.WinForms
             // CHK_Shiny
             // 
             CHK_Shiny.AutoSize = true;
+            CHK_Shiny.Checked = true;
+            CHK_Shiny.CheckState = System.Windows.Forms.CheckState.Checked;
             CHK_Shiny.Location = new System.Drawing.Point(10, 71);
             CHK_Shiny.Name = "CHK_Shiny";
             CHK_Shiny.Size = new System.Drawing.Size(98, 17);
@@ -320,6 +335,7 @@ namespace PKHeX.WinForms
         private System.Windows.Forms.CheckBox CHK_Gender;
         private System.Windows.Forms.CheckBox CHK_LegalOnly;
         private System.Windows.Forms.CheckBox CHK_MysteryGifts;
+        private System.Windows.Forms.CheckBox CHK_AllGames;
         private System.Windows.Forms.Label L_StartBox;
         private System.Windows.Forms.NumericUpDown NUD_StartBox;
         private System.Windows.Forms.CheckBox CHK_OverwriteExisting;

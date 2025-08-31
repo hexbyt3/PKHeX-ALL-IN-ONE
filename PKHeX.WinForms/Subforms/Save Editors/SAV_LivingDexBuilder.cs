@@ -17,7 +17,7 @@ namespace PKHeX.WinForms;
 public partial class SAV_LivingDexBuilder : Form
 {
     private readonly SaveFile SAV;
-    private readonly SaveFile Trainer;
+    private readonly TrainerDatabase Trainers;
     private readonly List<LivingDexEntry> MissingEntries = [];
     private readonly List<PKM> GeneratedPokemon = [];
 
@@ -25,12 +25,13 @@ public partial class SAV_LivingDexBuilder : Form
     /// Initializes a new instance of the Living Dex Builder form.
     /// </summary>
     /// <param name="sav">The save file to analyze and generate Pokémon for.</param>
-    public SAV_LivingDexBuilder(SaveFile sav)
+    /// <param name="trainers">The trainer database for generating encounters with trainer data.</param>
+    public SAV_LivingDexBuilder(SaveFile sav, TrainerDatabase trainers)
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
         SAV = sav;
-        Trainer = sav;
+        Trainers = trainers;
         
         InitializeOptions();
         AnalyzeMissingEntries();
@@ -53,12 +54,13 @@ public partial class SAV_LivingDexBuilder : Form
         ]);
         CB_Sorting.SelectedIndex = 0;
 
-        CHK_Shiny.Checked = false;
+        CHK_Shiny.Checked = true;
         CHK_MinLevel.Checked = false;
         CHK_Forms.Checked = true;
-        CHK_Gender.Checked = true;
+        CHK_Gender.Checked = false;
         CHK_LegalOnly.Checked = true;
         CHK_MysteryGifts.Checked = false;
+        CHK_AllGames.Checked = true;
         CHK_OverwriteExisting.Checked = false;
         
         // Add tooltips for clarity
@@ -66,6 +68,7 @@ public partial class SAV_LivingDexBuilder : Form
         tooltip.SetToolTip(CHK_Gender, "When checked, generates both male and female variants for species that have gender differences.\nWhen unchecked, generates only one representative per species/form.");
         tooltip.SetToolTip(CHK_MysteryGifts, "When checked, includes Mystery Gift/Event Pokémon.\nWhen unchecked, only uses wild/static/trade encounters.");
         tooltip.SetToolTip(CHK_MinLevel, "When checked, generates Pokémon at their minimum possible level.\nWhen unchecked, generates all Pokémon at level 100.");
+        tooltip.SetToolTip(CHK_AllGames, "When checked, includes Pokémon from paired game versions (e.g., Scarlet exclusives when on Violet).\nWhen unchecked, only includes Pokémon obtainable in the current game.");
 
         NUD_StartBox.Minimum = 1;
         NUD_StartBox.Maximum = SAV.BoxCount;
@@ -87,8 +90,8 @@ public partial class SAV_LivingDexBuilder : Form
             if (!SAV.Personal.IsSpeciesInGame(species))
                 continue;
             
-            // Skip Pokémon that can't be obtained in this game version
-            if (!IsObtainableInGame(species))
+            // Skip Pokémon that can't be obtained in this game version (unless Include All Games is checked)
+            if (!CHK_AllGames.Checked && !IsObtainableInGame(species))
                 continue;
 
             var pi = SAV.Personal[species];
@@ -99,7 +102,9 @@ public partial class SAV_LivingDexBuilder : Form
                 if (form > 0 && !SAV.Personal.IsPresentInGame(species, form))
                     continue;
 
-                AnalyzeGenderVariants(species, form, pi, existingSpecies);
+                // Get the PersonalInfo for this specific form
+                var formPi = SAV.Personal[species, form];
+                AnalyzeGenderVariants(species, form, formPi, existingSpecies);
             }
         }
 
@@ -113,20 +118,27 @@ public partial class SAV_LivingDexBuilder : Form
     private void AnalyzeGenderVariants(ushort species, byte form, IPersonalInfo pi, HashSet<(ushort Species, byte Form, byte Gender)> existingSpecies)
     {
         bool hasMale = false, hasFemale = false;
+        bool hasAny = false;
+        
         foreach (var existing in existingSpecies)
         {
             if (existing.Species == species && existing.Form == form)
             {
+                hasAny = true;
                 if (existing.Gender == 0) hasMale = true;
                 if (existing.Gender == 1) hasFemale = true;
             }
         }
 
+        // If we already have any variant of this species+form and gender checking is off, skip
+        if (hasAny && !CHK_Gender.Checked)
+            return;
+
         var genderless = pi.Gender == PersonalInfo.RatioMagicGenderless;
         var maleOnly = pi.Gender == PersonalInfo.RatioMagicMale;
         var femaleOnly = pi.Gender == PersonalInfo.RatioMagicFemale;
 
-        if (genderless && !hasMale && !hasFemale)
+        if (genderless && !hasAny)
         {
             MissingEntries.Add(new LivingDexEntry(species, form, 2));
         }
@@ -140,8 +152,22 @@ public partial class SAV_LivingDexBuilder : Form
         }
         else if (!genderless && !maleOnly && !femaleOnly)
         {
-            if (!hasMale) MissingEntries.Add(new LivingDexEntry(species, form, 0));
-            if (!hasFemale) MissingEntries.Add(new LivingDexEntry(species, form, 1));
+            // For species with both genders
+            if (CHK_Gender.Checked)
+            {
+                // Include both genders when checkbox is checked
+                if (!hasMale) MissingEntries.Add(new LivingDexEntry(species, form, 0));
+                if (!hasFemale) MissingEntries.Add(new LivingDexEntry(species, form, 1));
+            }
+            else
+            {
+                // Include only one representative when checkbox is unchecked
+                if (!hasMale && !hasFemale)
+                {
+                    // Default to male for consistency
+                    MissingEntries.Add(new LivingDexEntry(species, form, 0));
+                }
+            }
         }
     }
 
@@ -256,11 +282,13 @@ public partial class SAV_LivingDexBuilder : Form
     /// </summary>
     /// <param name="species">The species ID to check.</param>
     /// <returns>True if obtainable, false otherwise.</returns>
-    private static bool IsObtainableInGame(ushort species)
+    private bool IsObtainableInGame(ushort species)
     {
-        // For Living Dex, we want ALL species that exist in the game's data
-        // This includes evolved forms that can be obtained through evolution
-        return true; // Already checked IsSpeciesInGame above
+        // When "Include All Games" is checked, we want ALL species that exist in the game's data
+        // Otherwise, we should check if the Pokémon can actually be obtained in this specific version
+        // For now, return true since we're including all Pokémon that are in the game data
+        // This could be refined later to check version-exclusive encounter tables
+        return true;
     }
     
     /// <summary>
@@ -299,7 +327,7 @@ public partial class SAV_LivingDexBuilder : Form
         pk.Ball = (byte)Ball.Poke;
         pk.CurrentFriendship = pi.BaseFriendship;
         
-        var language = (int)Language.GetSafeLanguage(SAV.Generation, (LanguageID)Trainer.Language);
+        var language = (int)Language.GetSafeLanguage(SAV.Generation, (LanguageID)SAV.Language);
         pk.Language = language;
         pk.Nickname = SpeciesName.GetSpeciesNameGeneration(entry.Species, language, SAV.Generation);
     }
@@ -309,9 +337,9 @@ public partial class SAV_LivingDexBuilder : Form
     /// </summary>
     private void SetTrainerInfo(PKM pk)
     {
-        pk.OriginalTrainerName = Trainer.OT;
-        pk.OriginalTrainerGender = Trainer.Gender;
-        pk.ID32 = Trainer.ID32;
+        pk.OriginalTrainerName = SAV.OT;
+        pk.OriginalTrainerGender = SAV.Gender;
+        pk.ID32 = SAV.ID32;
         pk.Version = SAV.Version;
         pk.MetLevel = pk.CurrentLevel;
         pk.MetLocation = 30001; // Poké Transfer or similar
@@ -474,7 +502,8 @@ public partial class SAV_LivingDexBuilder : Form
     {
         var filtered = FilterEntries(MissingEntries).Count();
         var gameVersion = GameInfo.GetVersionName(SAV.Version);
-        L_Status.Text = $"Missing in {gameVersion}: {filtered} entries";
+        var scope = CHK_AllGames.Checked ? " + Paired" : "";
+        L_Status.Text = $"Missing in {gameVersion}{scope}: {filtered} entries";
     }
 
     /// <summary>
@@ -651,11 +680,104 @@ public partial class SAV_LivingDexBuilder : Form
     /// </summary>
     private List<IEncounterInfo> SearchForEncounters(PKM pk)
     {
-        var versions = new[] { SAV.Version }.AsMemory();
+        // When "Include All Games" is checked, search across all compatible versions
+        // Otherwise, only search in the current save's version
+        ReadOnlyMemory<GameVersion> versions;
+        
+        if (CHK_AllGames.Checked)
+        {
+            // Include all compatible versions for this generation
+            versions = GetCompatibleVersions().AsMemory();
+        }
+        else
+        {
+            versions = new[] { SAV.Version }.AsMemory();
+        }
+        
         var moves = ReadOnlyMemory<ushort>.Empty;
-        return EncounterMovesetGenerator.GenerateEncounters(pk, moves, versions)
+        var encounters = EncounterMovesetGenerator.GenerateEncounters(pk, moves, versions)
             .OfType<IEncounterInfo>() // Filter to IEncounterInfo types
             .ToList();
+            
+        // Filter out untradeable encounters (level 68 from Poco Path in Scarlet/Violet)
+        if ((SAV.Version == GameVersion.SL || SAV.Version == GameVersion.VL) && CHK_AllGames.Checked)
+        {
+            encounters = FilterUntradableEncounters(encounters);
+        }
+        
+        return encounters;
+    }
+    
+    /// <summary>
+    /// Gets compatible game versions for encounter searching based on the current save's paired version.
+    /// </summary>
+    private GameVersion[] GetCompatibleVersions()
+    {
+        return SAV.Version switch
+        {
+            // Gen 9 - Scarlet/Violet
+            GameVersion.SL or GameVersion.VL => [GameVersion.SL, GameVersion.VL],
+            
+            // Gen 8 - Different game lines
+            GameVersion.BD or GameVersion.SP => [GameVersion.BD, GameVersion.SP], // BDSP
+            GameVersion.PLA => [GameVersion.PLA], // Legends Arceus (standalone)
+            GameVersion.SW or GameVersion.SH => [GameVersion.SW, GameVersion.SH], // Sword/Shield
+            
+            // Gen 7 
+            GameVersion.GP or GameVersion.GE => [GameVersion.GP, GameVersion.GE], // Let's Go
+            GameVersion.US or GameVersion.UM => [GameVersion.US, GameVersion.UM], // Ultra Sun/Moon
+            GameVersion.SN or GameVersion.MN => [GameVersion.SN, GameVersion.MN], // Sun/Moon
+            
+            // Gen 6
+            GameVersion.OR or GameVersion.AS => [GameVersion.OR, GameVersion.AS], // Omega Ruby/Alpha Sapphire  
+            GameVersion.X or GameVersion.Y => [GameVersion.X, GameVersion.Y], // X/Y
+            
+            // Gen 5
+            GameVersion.B2 or GameVersion.W2 => [GameVersion.B2, GameVersion.W2], // Black 2/White 2
+            GameVersion.B or GameVersion.W => [GameVersion.B, GameVersion.W], // Black/White
+            
+            // Gen 4
+            GameVersion.HG or GameVersion.SS => [GameVersion.HG, GameVersion.SS], // HeartGold/SoulSilver
+            GameVersion.D or GameVersion.P => [GameVersion.D, GameVersion.P], // Diamond/Pearl
+            GameVersion.Pt => [GameVersion.D, GameVersion.P, GameVersion.Pt], // Platinum (includes D/P for compatibility)
+            
+            // Gen 3
+            GameVersion.FR or GameVersion.LG => [GameVersion.FR, GameVersion.LG], // FireRed/LeafGreen
+            GameVersion.R or GameVersion.S => [GameVersion.R, GameVersion.S], // Ruby/Sapphire
+            GameVersion.E => [GameVersion.R, GameVersion.S, GameVersion.E], // Emerald (includes R/S for compatibility)
+            
+            // Gen 2
+            GameVersion.GD or GameVersion.SI => [GameVersion.GD, GameVersion.SI], // Gold/Silver
+            GameVersion.C => [GameVersion.GD, GameVersion.SI, GameVersion.C], // Crystal (includes G/S for compatibility)
+            
+            // Gen 1
+            GameVersion.RD or GameVersion.BU => [GameVersion.RD, GameVersion.BU], // Red/Blue
+            GameVersion.YW => [GameVersion.RD, GameVersion.BU, GameVersion.YW], // Yellow (includes R/B for compatibility)
+            
+            _ => [SAV.Version]
+        };
+    }
+    
+    /// <summary>
+    /// Filters out untradeable encounters from Scarlet/Violet.
+    /// </summary>
+    private List<IEncounterInfo> FilterUntradableEncounters(List<IEncounterInfo> encounters)
+    {
+        // Filter out level 68 Koraidon/Miraidon encounters from Poco Path (these are untradeable)
+        // Keep level 72 encounters and others
+        return encounters.Where(e => 
+        {
+            // Check if this is a level 68 Koraidon or Miraidon (Poco Path encounters are untradeable)
+            if (e.LevelMin == 68 && e.LevelMax == 68)
+            {
+                // Check if it's Koraidon (1007) or Miraidon (1008)
+                if (e.Species == (ushort)Species.Koraidon || e.Species == (ushort)Species.Miraidon)
+                {
+                    return false; // Filter out level 68 Koraidon/Miraidon
+                }
+            }
+            return true; // Keep all other encounters
+        }).ToList();
     }
 
     /// <summary>
@@ -698,13 +820,19 @@ public partial class SAV_LivingDexBuilder : Form
             Gender = (Gender)entry.Gender
         };
 
-        var pk = enc.ConvertToPKM(SAV, criteria);
+        // Use trainer data from database if available, otherwise use save file
+        var trainer = Trainers.GetTrainer(encounter.Version, encounter.Generation <= 2 ? (LanguageID)SAV.Language : null) ?? SAV;
+        var pk = enc.ConvertToPKM(trainer, criteria);
         
         // Handle evolved forms if species doesn't match
         if (pk.Species != entry.Species)
+        {
             TransformToEvolvedForm(pk, entry);
+        }
         else
+        {
             SetPokemonLevel(pk, encounter);
+        }
         
         // Final validation and cleanup
         pk.RefreshChecksum();
