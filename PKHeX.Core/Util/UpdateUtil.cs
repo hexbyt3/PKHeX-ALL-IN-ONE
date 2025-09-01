@@ -184,12 +184,6 @@ $backupDir = '{Path.GetDirectoryName(currentExePath)}\backup_' + (Get-Date -Form
 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 Copy-Item -Path '{currentExePath}' -Destination $backupDir -Force
 
-# Also backup PKHeX.Core.dll if it exists
-$coreDll = '{Path.Combine(Path.GetDirectoryName(currentExePath)!, "PKHeX.Core.dll")}'
-if (Test-Path $coreDll) {{
-    Copy-Item -Path $coreDll -Destination $backupDir -Force
-}}
-
 # Replace the executable
 Copy-Item -Path '{updateFilePath}' -Destination '{currentExePath}' -Force
 

@@ -177,22 +177,15 @@ public partial class Main : Form
         var displayVersion = versionTag.StartsWith("v") ? versionTag.Substring(1) : versionTag;
         var btn = L_UpdateAvailable;
         
-        // Configure button appearance with DPI-aware settings
+        // Update dynamic text
         btn.Text = $"📥 Update to {displayVersion}";
-        btn.FlatStyle = FlatStyle.Flat;
-        btn.Cursor = Cursors.Hand;
-        btn.AutoSize = true;
-        btn.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-        btn.Padding = new Padding(8, 2, 8, 2);
-        btn.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         
-        // Set colors based on theme with improved contrast
+        // Set colors based on theme
         if (Settings.Startup.DarkMode)
         {
             btn.BackColor = Color.FromArgb(28, 28, 32);
             btn.ForeColor = Color.FromArgb(0, 220, 100); // Bright green for dark mode
             btn.FlatAppearance.BorderColor = Color.FromArgb(0, 220, 100);
-            btn.FlatAppearance.BorderSize = 1;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 180, 80);
             btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 150, 60);
         }
@@ -201,7 +194,6 @@ public partial class Main : Form
             btn.BackColor = Color.FromArgb(248, 248, 248);
             btn.ForeColor = Color.FromArgb(0, 102, 204); // Windows blue accent
             btn.FlatAppearance.BorderColor = Color.FromArgb(0, 102, 204);
-            btn.FlatAppearance.BorderSize = 1;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(230, 240, 250);
             btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 220, 240);
         }
