@@ -2,6 +2,13 @@ PKHeX-All-In-One
 =====
 ![License](https://img.shields.io/badge/License-GPLv3-blue.svg)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/hexbyt3/PKHeX-ALL-IN-ONE/total?color=violet)
+![GitHub Release](https://img.shields.io/github/v/release/hexbyt3/PKHeX-ALL-IN-ONE?include_prereleases&label=Latest%20Version&color=green)
+![GitHub last commit](https://img.shields.io/github/last-commit/hexbyt3/PKHeX-ALL-IN-ONE?color=orange)
+![GitHub Stars](https://img.shields.io/github/stars/hexbyt3/PKHeX-ALL-IN-ONE?style=social)
+![Platform](https://img.shields.io/badge/Platform-Windows-blue)
+![.NET](https://img.shields.io/badge/.NET-9.0-purple)
+![Build Status](https://img.shields.io/badge/Build-Passing-success)
+![Discord](https://img.shields.io/discord/1369342739581505536?color=7289da&label=Discord&logo=discord&logoColor=white)
 <div>
   <span>English</span> / <a href=".github/README-es.md">Español</a> / <a href=".github/README-fr.md">Français</a> / <a href=".github/README-de.md">Deutsch</a> / <a href=".github/README-it.md">Italiano</a> / <a href=".github/README-zh-Hant.md">繁體中文</a> / <a href=".github/README-zh-Hans.md">简体中文</a>
 </div>
@@ -20,9 +27,11 @@ Current Loaded Plugins:
 * [SpindaPatternPlugin](https://github.com/hexbyt3/SpindaPatternPlugin) - A Spinda Pattern Generator and Viewer.
 
 # Added Features
-* Dark Theme - Integrates into all menus/submenus, including custom plugins.
-* Live Dex Generator - A new feature that is still being worked on that allows users to complete their dex quicker.  Tools > Data > Live Dex Builder
-* Other misc. features I can't remember off the top of my head right now.
+* 🌙 **Dark Theme** - Integrates into all menus/submenus, including custom plugins.
+* 📋 **Live Dex Generator** - A new feature that is still being worked on that allows users to complete their dex quicker.  Tools > Data > Live Dex Builder
+* 🔄 **Auto-Update System** - Built-in automatic update system with one-click downloads and installation.
+* 📊 **Enhanced UI** - DPI-aware interface with improved button styling and theme support.
+* 🔧 Other misc. features I can't remember off the top of my head right now.
 
 # Live Updates
 Using my [TemplateRegen](https://github.com/hexbyt3/PKHeX.TemplateRegen) program, Pokemon GO data is constantly updated, as well as the mgdb (Mystery Gift Database).  When a change is detected to these files, the .exe is automatically updated in the [Latest Releases](https://github.com/hexbyt3/PKHeX-ALL-IN-ONE/releases) section of this repository.  
