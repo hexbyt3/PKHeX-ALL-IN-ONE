@@ -12,6 +12,10 @@ public sealed class StartupSettings : IStartupSettings
     public string Version { get; set; } = string.Empty;
 
     [Browsable(false)]
+    [LocalizedDescription("Last revision tag that was checked or downloaded.")]
+    public string LastCheckedRevision { get; set; } = string.Empty;
+
+    [Browsable(false)]
     [LocalizedDescription("Use the Dark color mode for the application on startup.")]
     public bool DarkMode { get; set; }
 

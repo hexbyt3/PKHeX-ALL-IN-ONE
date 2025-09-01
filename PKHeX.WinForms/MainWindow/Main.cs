@@ -147,13 +147,24 @@ public partial class Main : Form
         if (latestTag is null)
             return;
             
+        // Check against the last checked revision to avoid showing update notification repeatedly
+        var latestTagClean = latestTag.TrimStart('v');
+        
+        // If we've already checked this revision, don't show the update again
+        if (Settings.Startup.LastCheckedRevision == latestTagClean)
+            return;
+            
         // Simple string comparison - if tags differ, there's an update
         // This handles both base version updates and revision releases
         var currentTag = Program.CurrentVersionString.TrimStart('v');
-        var latestTagClean = latestTag.TrimStart('v');
         
         if (currentTag == latestTagClean)
-            return; // Same version, no update
+        {
+            // We're on the latest version, update the last checked revision
+            Settings.Startup.LastCheckedRevision = latestTagClean;
+            _ = Task.Run(async () => await PKHeXSettings.SaveSettings(Program.PathConfig, Settings).ConfigureAwait(false));
+            return;
+        }
         
         while (!IsHandleCreated) // Wait for form to be ready
             await Task.Delay(2_000).ConfigureAwait(false);
@@ -164,10 +175,90 @@ public partial class Main : Form
     {
         // Display the full version tag including revision if present
         var displayVersion = versionTag.StartsWith("v") ? versionTag.Substring(1) : versionTag;
-        var lbl = L_UpdateAvailable;
-        lbl.Text = $"{MsgProgramUpdateAvailable} {displayVersion}";
-        lbl.Click += (_, _) => Process.Start(new ProcessStartInfo(ThreadPath) { UseShellExecute = true });
-        lbl.Visible = lbl.TabStop = lbl.Enabled = true;
+        var btn = L_UpdateAvailable;
+        
+        // Configure button appearance with DPI-aware settings
+        btn.Text = $"📥 Update to {displayVersion}";
+        btn.FlatStyle = FlatStyle.Flat;
+        btn.Cursor = Cursors.Hand;
+        btn.AutoSize = true;
+        btn.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        btn.Padding = new Padding(8, 2, 8, 2);
+        btn.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        
+        // Set colors based on theme with improved contrast
+        if (Settings.Startup.DarkMode)
+        {
+            btn.BackColor = Color.FromArgb(28, 28, 32);
+            btn.ForeColor = Color.FromArgb(0, 220, 100); // Bright green for dark mode
+            btn.FlatAppearance.BorderColor = Color.FromArgb(0, 220, 100);
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 180, 80);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(0, 150, 60);
+        }
+        else
+        {
+            btn.BackColor = Color.FromArgb(248, 248, 248);
+            btn.ForeColor = Color.FromArgb(0, 102, 204); // Windows blue accent
+            btn.FlatAppearance.BorderColor = Color.FromArgb(0, 102, 204);
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(230, 240, 250);
+            btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(200, 220, 240);
+        }
+        
+        // Handle click event for auto-update
+        btn.Click += async (_, _) => await HandleUpdateClick(versionTag);
+        btn.Visible = btn.TabStop = btn.Enabled = true;
+    }
+    
+    private async Task HandleUpdateClick(string versionTag)
+    {
+        var btn = L_UpdateAvailable;
+        btn.Enabled = false;
+        btn.Text = "Checking...";
+        
+        try
+        {
+            // Get download URL
+            var downloadUrl = UpdateUtil.GetLatestDownloadUrl();
+            if (downloadUrl == null)
+            {
+                var result = MessageBox.Show(
+                    "Unable to automatically download the update.\n\nWould you like to open the download page in your browser?",
+                    "Auto-Update Unavailable",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+                    
+                if (result == DialogResult.Yes)
+                {
+                    Process.Start(new ProcessStartInfo(ThreadPath) { UseShellExecute = true });
+                    // Mark as checked to avoid showing the notification again
+                    Settings.Startup.LastCheckedRevision = versionTag.TrimStart('v');
+                    _ = Task.Run(async () => await PKHeXSettings.SaveSettings(Program.PathConfig, Settings).ConfigureAwait(false));
+                }
+                
+                btn.Text = $"Update to {versionTag.TrimStart('v')}";
+                btn.Enabled = true;
+                return;
+            }
+            
+            // Show update dialog
+            using var updateDialog = new UpdateProgressDialog(downloadUrl, versionTag, Settings);
+            updateDialog.ShowDialog(this);
+            
+            // Re-enable button if dialog was cancelled
+            if (btn.Visible)
+            {
+                btn.Text = $"Update to {versionTag.TrimStart('v')}";
+                btn.Enabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An error occurred while updating: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            btn.Text = $"Update to {versionTag.TrimStart('v')}";
+            btn.Enabled = true;
+        }
     }
 
     public static DrawConfig Draw { get; private set; } = new();

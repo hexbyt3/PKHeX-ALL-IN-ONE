@@ -69,7 +69,7 @@ namespace PKHeX.WinForms
             Menu_Redo = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Settings = new System.Windows.Forms.ToolStripMenuItem();
             Menu_About = new System.Windows.Forms.ToolStripMenuItem();
-            L_UpdateAvailable = new System.Windows.Forms.LinkLabel();
+            L_UpdateAvailable = new System.Windows.Forms.Button();
             toolTip = new System.Windows.Forms.ToolTip(components);
             splitContainer1 = new System.Windows.Forms.SplitContainer();
             dragout = new PKHeX.WinForms.Controls.SelectablePictureBox();
@@ -432,17 +432,22 @@ namespace PKHeX.WinForms
             // 
             // L_UpdateAvailable
             // 
-            L_UpdateAvailable.AccessibleDescription = "If an update is available, link label can be clicked to open new download link.";
+            L_UpdateAvailable.AccessibleDescription = "If an update is available, button can be clicked to download and install the update.";
             L_UpdateAvailable.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            L_UpdateAvailable.AutoSize = true;
+            L_UpdateAvailable.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             L_UpdateAvailable.Enabled = false;
-            L_UpdateAvailable.Location = new System.Drawing.Point(564, 0);
-            L_UpdateAvailable.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            L_UpdateAvailable.Location = new System.Drawing.Point(720, 1);
+            L_UpdateAvailable.Margin = new System.Windows.Forms.Padding(2, 1, 2, 1);
+            L_UpdateAvailable.MinimumSize = new System.Drawing.Size(100, 22);
             L_UpdateAvailable.Name = "L_UpdateAvailable";
-            L_UpdateAvailable.Size = new System.Drawing.Size(288, 24);
+            L_UpdateAvailable.Padding = new System.Windows.Forms.Padding(8, 2, 8, 2);
             L_UpdateAvailable.TabIndex = 102;
-            L_UpdateAvailable.TabStop = true;
-            L_UpdateAvailable.Text = "You are using the latest version!";
-            L_UpdateAvailable.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            L_UpdateAvailable.Text = "Update Available";
+            L_UpdateAvailable.UseVisualStyleBackColor = false;
+            L_UpdateAvailable.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            L_UpdateAvailable.Cursor = System.Windows.Forms.Cursors.Hand;
+            L_UpdateAvailable.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             L_UpdateAvailable.Visible = false;
             // 
             // splitContainer1
@@ -597,7 +602,7 @@ namespace PKHeX.WinForms
         #endregion
         public Controls.PKMEditor PKME_Tabs;
         private Controls.SAVEditor C_SAV;
-        private System.Windows.Forms.LinkLabel L_UpdateAvailable;
+        private System.Windows.Forms.Button L_UpdateAvailable;
 
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem Menu_File;
