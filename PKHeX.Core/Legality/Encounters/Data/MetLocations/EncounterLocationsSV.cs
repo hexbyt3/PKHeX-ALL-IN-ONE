@@ -719,7 +719,8 @@ public static class EncounterLocationsSV
         int metLevel, string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string encounterVersion,
         SizeType9 sizeType, byte sizeValue, int flawlessIVCount = 0, string setIVs = "")
     {
-        string dexNumber = form > 0 ? $"{speciesIndex}-{form}" : speciesIndex.ToString();
+        // For Scatterbug (664) and Spewpa (665), don't show form numbers since only Vivillon (666) has meaningful forms
+        string dexNumber = (form > 0 && speciesIndex != 664 && speciesIndex != 665) ? $"{speciesIndex}-{form}" : speciesIndex.ToString();
 
         var speciesName = gameStrings.specieslist[speciesIndex];
         if (string.IsNullOrEmpty(speciesName))
@@ -786,7 +787,7 @@ public static class EncounterLocationsSV
             {
                 SpeciesName = speciesName,
                 SpeciesIndex = speciesIndex,
-                Form = form,
+                Form = (speciesIndex == 664 || speciesIndex == 665) ? (byte)0 : form,
                 LocationName = locationName,
                 LocationId = locationId,
                 MinLevel = minLevel,
