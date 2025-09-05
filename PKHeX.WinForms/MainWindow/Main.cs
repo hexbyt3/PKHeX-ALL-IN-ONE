@@ -147,24 +147,37 @@ public partial class Main : Form
         if (latestTag is null)
             return;
             
-        // Check against the last checked revision to avoid showing update notification repeatedly
+        // Clean the tags for comparison
         var latestTagClean = latestTag.TrimStart('v');
-        
-        // If we've already checked this revision, don't show the update again
-        if (Settings.Startup.LastCheckedRevision == latestTagClean)
-            return;
-            
-        // Simple string comparison - if tags differ, there's an update
-        // This handles both base version updates and revision releases
         var currentTag = Program.CurrentVersionString.TrimStart('v');
         
+        // Always update LastCheckedRevision when we successfully check for updates
+        // and the current version matches the latest version
         if (currentTag == latestTagClean)
         {
             // We're on the latest version, update the last checked revision
-            Settings.Startup.LastCheckedRevision = latestTagClean;
-            _ = Task.Run(async () => await PKHeXSettings.SaveSettings(Program.PathConfig, Settings).ConfigureAwait(false));
+            if (Settings.Startup.LastCheckedRevision != latestTagClean)
+            {
+                Settings.Startup.LastCheckedRevision = latestTagClean;
+                await PKHeXSettings.SaveSettings(Program.PathConfig, Settings).ConfigureAwait(false);
+            }
+            
+            // Hide the update button if it's visible
+            if (L_UpdateAvailable.Visible)
+            {
+                await InvokeAsync(() => {
+                    L_UpdateAvailable.Visible = false;
+                    L_UpdateAvailable.TabStop = false;
+                    L_UpdateAvailable.Enabled = false;
+                }).ConfigureAwait(false);
+            }
+            
             return;
         }
+        
+        // If we've already notified the user about this version, don't show the update button again
+        if (Settings.Startup.LastCheckedRevision == latestTagClean)
+            return;
         
         while (!IsHandleCreated) // Wait for form to be ready
             await Task.Delay(2_000).ConfigureAwait(false);
@@ -226,7 +239,7 @@ public partial class Main : Form
                     Process.Start(new ProcessStartInfo(ThreadPath) { UseShellExecute = true });
                     // Mark as checked to avoid showing the notification again
                     Settings.Startup.LastCheckedRevision = versionTag.TrimStart('v');
-                    _ = Task.Run(async () => await PKHeXSettings.SaveSettings(Program.PathConfig, Settings).ConfigureAwait(false));
+                    await PKHeXSettings.SaveSettings(Program.PathConfig, Settings).ConfigureAwait(false);
                 }
                 
                 btn.Text = $"Update to {versionTag.TrimStart('v')}";

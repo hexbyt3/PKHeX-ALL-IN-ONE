@@ -117,7 +117,7 @@ public partial class UpdateProgressDialog : Form
                     {
                         // Save the revision as checked/downloaded before updating
                         _settings.Startup.LastCheckedRevision = _versionTag.TrimStart('v');
-                        _ = Task.Run(async () => await PKHeXSettings.SaveSettings(Program.PathConfig, _settings).ConfigureAwait(false));
+                        await PKHeXSettings.SaveSettings(Program.PathConfig, _settings).ConfigureAwait(false);
                         
                         UpdateUtil.ExecuteUpdate(exePath);
                     }
@@ -127,7 +127,7 @@ public partial class UpdateProgressDialog : Form
                         
                         // Mark as checked even if cancelled to avoid repeated notifications
                         _settings.Startup.LastCheckedRevision = _versionTag.TrimStart('v');
-                        _ = Task.Run(async () => await PKHeXSettings.SaveSettings(Program.PathConfig, _settings).ConfigureAwait(false));
+                        await PKHeXSettings.SaveSettings(Program.PathConfig, _settings).ConfigureAwait(false);
                     }
                 }
                 else
