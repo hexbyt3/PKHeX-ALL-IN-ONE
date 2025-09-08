@@ -65,6 +65,7 @@ public partial class Main : Form
     public static IReadOnlyList<string> GenderSymbols { get; private set; } = GameInfo.GenderSymbolUnicode;
     public static bool HaX => Program.HaX;
     private static List<IPlugin> Plugins { get; } = [];
+    private static PluginLoadResult? PluginLoadResult { get; set; } // keep alive so that plugins may load their external dependencies if needed
     #endregion
 
     #region Path Variables
@@ -296,7 +297,15 @@ public partial class Main : Form
 #endif
         try
         {
-            Plugins.AddRange(PluginLoader.LoadPlugins<IPlugin>(folder, Settings.Startup.PluginLoadMethod));
+            PluginLoadResult = PluginLoader.LoadPlugins(folder, Plugins, Settings.Startup.PluginLoadMerged);
+            
+            // Also load plugins from MainWindow/Plugins directory
+            var customPluginFolder = Path.Combine(Application.StartupPath, "MainWindow", "Plugins");
+            if (Directory.Exists(customPluginFolder))
+            {
+                var customResult = PluginLoader.LoadPlugins(customPluginFolder, Plugins, Settings.Startup.PluginLoadMerged);
+                // Merge the results if needed
+            }
         }
         catch (InvalidCastException c)
         {
