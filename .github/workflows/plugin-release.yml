@@ -88,7 +88,7 @@ jobs:
         GH_TOKEN: ${{ github.token }}
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore PKHeX.sln
     
     - name: Publish project
       run: dotnet publish PKHeX.WinForms/PKHeX.WinForms.csproj --configuration Release --runtime win-x64 --self-contained false -p:PublishSingleFile=true -p:PublishReadyToRun=true -p:IncludeAllContentForSelfExtract=true --output publish
