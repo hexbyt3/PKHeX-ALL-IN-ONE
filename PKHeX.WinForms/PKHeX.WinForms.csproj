@@ -48,13 +48,17 @@
     <EmbeddedResource Include="MainWindow\Plugins\AutoModPlugins.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="MainWindow\Plugins\HomeLive.Plugins.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\HomeLive.Plugins.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="MainWindow\Plugins\PluginPile.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\PluginPile.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainWindow\Plugins\SpindaPatternPlugin.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow\Plugins\SVSeedFinderPlugin.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -62,7 +66,9 @@
     <EmbeddedResource Include="MainWindow\Plugins\SWSHSeedFinderPlugin.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="MainWindow\Plugins\TeraFinder.Plugins.dll" />
+    <EmbeddedResource Include="MainWindow\Plugins\TeraFinder.Plugins.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
