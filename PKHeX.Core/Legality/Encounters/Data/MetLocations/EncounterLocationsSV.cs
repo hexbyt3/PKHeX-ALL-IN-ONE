@@ -209,6 +209,14 @@ public static class EncounterLocationsSV
     {
         foreach (var encounter in encounters)
         {
+            // Skip Poco Path (location 70) encounters for Koraidon (1007) and Miraidon (1008)
+            // Only the Area Zero level 72 encounter is legitimate
+            if (encounter.Location == 70 && (encounter.Species == 1007 || encounter.Species == 1008))
+            {
+                errorLogger.WriteLine($"[{DateTime.Now}] Skipping illegitimate Poco Path encounter for {(encounter.Species == 1007 ? "Koraidon" : "Miraidon")} (level {encounter.Level})");
+                continue;
+            }
+
             var locationId = encounter.Location;
             var locationName = gameStrings.GetLocationName(false, (ushort)locationId, 9, 9, GameVersion.SV)
                 ?? $"Unknown Location {locationId}";
