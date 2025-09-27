@@ -277,7 +277,7 @@ public static class PokemonDbGenerator
             return true;
 
         // Check for untradable forms
-        if (FormInfo.IsUntradable((ushort)species, form, formArg, format))
+        if (TradeRestrictions.IsUntradable((ushort)species, form, formArg, format))
             return true;
 
         // Game-specific exclusions
