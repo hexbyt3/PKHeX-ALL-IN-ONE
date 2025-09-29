@@ -346,13 +346,30 @@ public static class WinFormsUtil
         using var sfd = new SaveFileDialog();
         sfd.Filter = genericFilter;
         sfd.DefaultExt = pkx;
-        var namer = new GengarNamer();
+
+        // Use the configured namer from settings
+        IFileNamer<PKM> namer = GetPKMExportNamer();
         sfd.FileName = PathUtil.CleanFileName(namer.GetName(pk));
         if (sfd.ShowDialog() != DialogResult.OK)
             return false;
 
         SavePKM(pk, sfd.FileName, pkx);
         return true;
+    }
+
+    private static IFileNamer<PKM> GetPKMExportNamer()
+    {
+        var preferredNamerName = Main.Settings.SlotExport.DefaultPKMExportNamer;
+
+        // Find the namer by name from available namers
+        foreach (var namer in EntityFileNamer.AvailableNamers)
+        {
+            if (namer.Name == preferredNamerName)
+                return namer;
+        }
+
+        // Fallback to default if not found
+        return EntityFileNamer.Namer;
     }
 
     private static void SavePKM(PKM pk, string path, ReadOnlySpan<char> pkx)
