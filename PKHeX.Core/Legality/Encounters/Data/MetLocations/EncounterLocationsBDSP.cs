@@ -35,6 +35,7 @@ public static class EncounterLocationsBDSP
             ProcessWildEncounters(encounterData, gameStrings, errorLogger);
             ProcessEggMetLocations(encounterData, gameStrings, errorLogger);
             ProcessStaticEncounters(encounterData, gameStrings, errorLogger);
+            ProcessTradeEncounters(encounterData, gameStrings, errorLogger);
 
             var jsonOptions = new JsonSerializerOptions
             {
@@ -197,6 +198,44 @@ public static class EncounterLocationsBDSP
     }
 
     /// <summary>
+    /// Processes trade encounter data for BD/SP.
+    /// </summary>
+    /// <param name="encounterData">Dictionary to store encounter data</param>
+    /// <param name="gameStrings">Game string resources</param>
+    /// <param name="errorLogger">Error logging stream</param>
+    private static void ProcessTradeEncounters(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
+        StreamWriter errorLogger)
+    {
+        const ushort tradeLocationId = 30001;
+        const string tradeLocationName = "a Link Trade (NPC)";
+
+        foreach (var encounter in Encounters8b.TradeGift_BDSP)
+        {
+            var speciesName = gameStrings.specieslist[encounter.Species];
+            if (string.IsNullOrEmpty(speciesName))
+            {
+                errorLogger.WriteLine($"[{DateTime.Now}] Empty species name for index {encounter.Species}. Skipping.");
+                continue;
+            }
+
+            string setIVs = string.Empty;
+            int flawlessIVCount = 0;
+
+            if (encounter.IVs.IsSpecified)
+            {
+                setIVs = FormatIVs(encounter.IVs);
+            }
+
+            AddEncounterInfoWithEvolutions(
+                encounterData, gameStrings, errorLogger,
+                encounter.Species, encounter.Form, tradeLocationName,
+                tradeLocationId, encounter.Level, encounter.Level, "Trade",
+                encounter.Shiny == Shiny.Never, true,
+                encounter.FixedBall.ToString(), "Both", false, (byte)flawlessIVCount, setIVs);
+        }
+    }
+
+    /// <summary>
     /// Processes an array of static encounters.
     /// </summary>
     /// <param name="encounters">Array of static encounters</param>
@@ -252,7 +291,7 @@ public static class EncounterLocationsBDSP
     private static void AddEncounterInfoWithEvolutions(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, ushort speciesIndex, byte form, string locationName, ushort locationId, byte minLevel, byte maxLevel,
         string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string version, bool isUnderground,
-        byte flawlessIVCount = 0)
+        byte flawlessIVCount = 0, string setIVs = "")
     {
         var pt = PersonalTable.BDSP;
         var personalInfo = pt.GetFormEntry(speciesIndex, form);
@@ -268,7 +307,7 @@ public static class EncounterLocationsBDSP
             speciesIndex, form, locationName, locationId,
             minLevel, maxLevel, minLevel, encounterType,
             isShinyLocked, isGift, fixedBall,
-            version, isUnderground, flawlessIVCount);
+            version, isUnderground, flawlessIVCount, setIVs);
 
         var processedForms = new HashSet<(ushort Species, byte Form)> { (speciesIndex, form) };
 
@@ -277,7 +316,7 @@ public static class EncounterLocationsBDSP
             speciesIndex, form, locationName, locationId,
             maxLevel, maxLevel, minLevel, encounterType,
             isShinyLocked, isGift, fixedBall,
-            version, isUnderground, flawlessIVCount, pt, processedForms);
+            version, isUnderground, flawlessIVCount, setIVs, pt, processedForms);
     }
 
     /// <summary>
@@ -305,7 +344,7 @@ public static class EncounterLocationsBDSP
     private static void ProcessEvolutionLine(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, ushort baseSpecies, byte form, string locationName, ushort locationId,
         byte baseLevel, byte maxLevel, byte metLevel, string encounterType, bool isShinyLocked, bool isGift, string fixedBall,
-        string version, bool isUnderground, byte flawlessIVCount, PersonalTable8BDSP pt,
+        string version, bool isUnderground, byte flawlessIVCount, string setIVs, PersonalTable8BDSP pt,
         HashSet<(ushort Species, byte Form)> processedForms)
     {
         if (pt.GetFormEntry(baseSpecies, form)?.IsPresentInGame != true)
@@ -337,14 +376,14 @@ public static class EncounterLocationsBDSP
                 evoSpecies, evoForm, locationName, locationId,
                 (byte)minLevel, maxLevel, metLevel, $"{encounterType} (Evolved)",
                 isShinyLocked, isGift, fixedBall,
-                version, isUnderground, flawlessIVCount);
+                version, isUnderground, flawlessIVCount, setIVs);
 
             ProcessEvolutionLine(
                 encounterData, gameStrings, errorLogger,
                 evoSpecies, evoForm, locationName, locationId,
                 (byte)minLevel, maxLevel, metLevel, encounterType,
                 isShinyLocked, isGift, fixedBall,
-                version, isUnderground, flawlessIVCount, pt, processedForms);
+                version, isUnderground, flawlessIVCount, setIVs, pt, processedForms);
         }
     }
 
@@ -506,7 +545,7 @@ public static class EncounterLocationsBDSP
     private static void AddSingleEncounterInfo(Dictionary<string, List<EncounterInfo>> encounterData, GameStrings gameStrings,
         StreamWriter errorLogger, ushort speciesIndex, byte form, string locationName, ushort locationId, byte minLevel, byte maxLevel,
         byte metLevel, string encounterType, bool isShinyLocked, bool isGift, string fixedBall, string version, bool isUnderground,
-        byte flawlessIVCount = 0)
+        byte flawlessIVCount = 0, string setIVs = "")
     {
         string dexNumber = form > 0 ? $"{speciesIndex}-{form}" : speciesIndex.ToString();
 
@@ -580,7 +619,8 @@ public static class EncounterLocationsBDSP
                 FixedBall = fixedBall,
                 Version = version,
                 Gender = genderRatio,
-                FlawlessIVCount = flawlessIVCount
+                FlawlessIVCount = flawlessIVCount,
+                SetIVs = setIVs
             };
 
             // Set ribbons and marks for this encounter
@@ -781,6 +821,23 @@ public static class EncounterLocationsBDSP
     };
 
     /// <summary>
+    /// Formats IVs as a string for display and storage.
+    /// </summary>
+    private static string FormatIVs(IndividualValueSet ivs)
+    {
+        var ivParts = new List<string>(6);
+
+        if (ivs.HP >= 0) ivParts.Add($"HP:{ivs.HP}");
+        if (ivs.ATK >= 0) ivParts.Add($"Atk:{ivs.ATK}");
+        if (ivs.DEF >= 0) ivParts.Add($"Def:{ivs.DEF}");
+        if (ivs.SPA >= 0) ivParts.Add($"SpA:{ivs.SPA}");
+        if (ivs.SPD >= 0) ivParts.Add($"SpD:{ivs.SPD}");
+        if (ivs.SPE >= 0) ivParts.Add($"Spe:{ivs.SPE}");
+
+        return string.Join(", ", ivParts);
+    }
+
+    /// <summary>
     /// Information about a Pokémon encounter.
     /// </summary>
     private sealed class EncounterInfo
@@ -864,6 +921,11 @@ public static class EncounterLocationsBDSP
         /// Number of guaranteed perfect IVs.
         /// </summary>
         public byte FlawlessIVCount { get; set; }
+
+        /// <summary>
+        /// String representation of fixed IV values for this encounter.
+        /// </summary>
+        public string SetIVs { get; set; } = string.Empty;
 
         /// <summary>
         /// Required Marks that an encounter must have.

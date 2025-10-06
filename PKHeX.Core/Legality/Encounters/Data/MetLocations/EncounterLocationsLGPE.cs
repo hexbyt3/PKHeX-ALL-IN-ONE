@@ -96,7 +96,7 @@ public static class EncounterLocationsLGPE
             string setIVs = string.Empty;
             int flawlessIVCount = encounter.FlawlessIVCount;
 
-            if (!IsEmptyIVs(encounter.IVs))
+            if (encounter.IVs.IsSpecified)
             {
                 setIVs = FormatIVs(encounter.IVs);
                 flawlessIVCount = 0; // If specific IVs are set, don't use FlawlessIVCount
@@ -123,7 +123,7 @@ public static class EncounterLocationsLGPE
             string setIVs = string.Empty;
             int flawlessIVCount = 0;
 
-            if (!IsEmptyIVs(encounter.IVs))
+            if (encounter.IVs.IsSpecified)
             {
                 setIVs = FormatIVs(encounter.IVs);
             }
@@ -370,13 +370,6 @@ public static class EncounterLocationsLGPE
 
         return string.Join(", ", ivParts);
     }
-
-    /// <summary>
-    /// Checks if all IVs are unspecified (-1).
-    /// </summary>
-    private static bool IsEmptyIVs(IndividualValueSet ivs) =>
-        ivs.HP == -1 && ivs.ATK == -1 && ivs.DEF == -1 &&
-        ivs.SPA == -1 && ivs.SPD == -1 && ivs.SPE == -1;
 
     /// <summary>
     /// Contains information about a single encounter.

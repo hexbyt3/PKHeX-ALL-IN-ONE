@@ -863,6 +863,11 @@ public static class EncounterLocationsLA
         public required int FlawlessIVCount { get; set; }
 
         /// <summary>
+        /// String representation of fixed IV values for this encounter.
+        /// </summary>
+        public string SetIVs { get; set; } = string.Empty;
+
+        /// <summary>
         /// Whether the encounter is shiny-locked.
         /// </summary>
         public required bool IsShinyLocked { get; set; }
