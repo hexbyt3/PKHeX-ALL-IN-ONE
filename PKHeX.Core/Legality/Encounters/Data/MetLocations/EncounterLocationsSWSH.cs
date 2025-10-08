@@ -391,6 +391,29 @@ public static class EncounterLocationsSWSH
                 locationName, MaxLair, encounter.Level, encounter.Level, "Max Lair",
                 encounter.Shiny == Shiny.Never, false, string.Empty, "Both", canGigantamax,
                 flawlessIVCount, string.Empty, weather);
+
+            // Special handling for form-changing Pokemon in Gen 8
+            // Zygarde can change to any form in Gen 8 after being caught
+            if (encounter.Species == (int)Species.Zygarde)
+            {
+                var pt = PersonalTable.SWSH;
+                // Add all other Zygarde forms (0, 1, 2, 3) since they can all be obtained from a Max Lair catch
+                for (byte form = 0; form <= 3; form++)
+                {
+                    if (form == encounter.Form)
+                        continue; // Already added above
+
+                    var formInfo = pt.GetFormEntry(encounter.Species, form);
+                    if (formInfo is null || !formInfo.IsPresentInGame)
+                        continue;
+
+                    AddEncounterInfoWithEvolutions(
+                        encounterData, gameStrings, errorLogger, encounter.Species, form,
+                        locationName, MaxLair, encounter.Level, encounter.Level, "Max Lair",
+                        encounter.Shiny == Shiny.Never, false, string.Empty, "Both", canGigantamax,
+                        flawlessIVCount, string.Empty, weather);
+                }
+            }
         }
     }
 
